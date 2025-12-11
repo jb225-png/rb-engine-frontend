@@ -1,15 +1,17 @@
 import React from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
 
 export const UploadQueue: React.FC = () => {
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-neutral-900">Upload Queue</h1>
-        <Button variant="primary">Add to Queue</Button>
-      </div>
+      <PageHeader
+        title="Upload Queue"
+        description="Monitor and manage content upload processing"
+        actions={<Button variant="primary">Add to Queue</Button>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>

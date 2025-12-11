@@ -13,13 +13,13 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-white border-r border-neutral-200 h-screen sticky top-0">
-      <div className="p-6">
+    <aside className="w-64 bg-white border-r border-neutral-200 h-screen sticky top-0 hidden lg:block">
+      <div className="p-6 border-b border-neutral-100">
         <h1 className="text-2xl font-bold text-primary-600">RBB Engine</h1>
         <p className="text-xs text-neutral-500 mt-1">Admin Portal</p>
       </div>
 
-      <nav className="px-3">
+      <nav className="p-4">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -28,15 +28,15 @@ export const Sidebar: React.FC = () => {
               to={item.path}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-lg mb-1
-                transition-colors duration-200
+                transition-all duration-200 group
                 ${isActive 
-                  ? 'bg-primary-50 text-primary-700 font-medium' 
-                  : 'text-neutral-700 hover:bg-neutral-50'
+                  ? 'bg-primary-50 text-primary-700 font-medium shadow-sm border border-primary-100' 
+                  : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                 }
               `}
             >
-              <span className="text-xl">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="text-lg group-hover:scale-110 transition-transform">{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
             </Link>
           );
         })}

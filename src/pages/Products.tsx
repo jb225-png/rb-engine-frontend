@@ -1,15 +1,17 @@
 import React from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
 
 export const Products: React.FC = () => {
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-neutral-900">Products</h1>
-        <Button variant="primary">Create New Product</Button>
-      </div>
+      <PageHeader
+        title="Products"
+        description="Manage your curriculum products and content"
+        actions={<Button variant="primary">Create New Product</Button>}
+      />
 
       <Card>
         <div className="mb-4">
