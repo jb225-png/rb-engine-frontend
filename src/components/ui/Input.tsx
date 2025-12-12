@@ -25,22 +25,29 @@ export const Input: React.FC<InputProps> = ({
   required = false,
   className = '',
 }) => {
+  const inputId = React.useId();
+  const errorId = error ? `${inputId}-error` : undefined;
+  const helperTextId = helperText ? `${inputId}-helper` : undefined;
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-neutral-700">
+        <label htmlFor={inputId} className="block text-sm font-medium text-neutral-700">
           {label}
-          {required && <span className="text-error-500 ml-1">*</span>}
+          {required && <span className="text-error-500 ml-1" aria-label="required">*</span>}
         </label>
       )}
       
       <input
+        id={inputId}
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
         required={required}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-describedby={[errorId, helperTextId].filter(Boolean).join(' ') || undefined}
         className={`
           w-full px-4 py-2 border rounded-lg transition-colors
           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
@@ -53,11 +60,11 @@ export const Input: React.FC<InputProps> = ({
       />
       
       {error && (
-        <p className="text-sm text-error-600">{error}</p>
+        <p id={errorId} className="text-sm text-error-600" role="alert">{error}</p>
       )}
       
       {helperText && !error && (
-        <p className="text-sm text-neutral-500">{helperText}</p>
+        <p id={helperTextId} className="text-sm text-neutral-500">{helperText}</p>
       )}
     </div>
   );
