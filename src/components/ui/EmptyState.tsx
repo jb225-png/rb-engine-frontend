@@ -4,6 +4,7 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
   className?: string;
 }
 
@@ -11,15 +12,32 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   action,
+  icon,
   className = '',
 }) => {
   return (
     <div className={`text-center py-12 ${className}`}>
-      <h3 className="text-sm font-medium text-neutral-900 mb-2">{title}</h3>
-      {description && (
-        <p className="text-sm text-neutral-500 mb-4">{description}</p>
+      {icon && (
+        <div className="mb-4 flex justify-center">
+          {icon}
+        </div>
       )}
-      {action && <div>{action}</div>}
+      
+      <h3 className="text-lg font-medium text-neutral-900 mb-2">
+        {title}
+      </h3>
+      
+      {description && (
+        <p className="text-neutral-500 mb-6 max-w-sm mx-auto">
+          {description}
+        </p>
+      )}
+      
+      {action && (
+        <div className="flex justify-center">
+          {action}
+        </div>
+      )}
     </div>
   );
 };

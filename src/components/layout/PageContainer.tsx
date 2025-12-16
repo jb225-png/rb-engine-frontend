@@ -10,7 +10,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 ${className}`}>
+    <div className={`space-y-6 ${className}`}>
       {children}
     </div>
   );
