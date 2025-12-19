@@ -5,85 +5,67 @@ import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { Section } from '../components/ui/Section';
+import { Spinner } from '../components/ui/Spinner';
+import { EmptyState } from '../components/ui/EmptyState';
+import { useProductQuery, useUpdateProductStatus } from '../hooks/useProducts';
+import { Product } from '../types/api';
 
-interface ProductData {
-  id: string;
-  name: string;
-  type: string;
-  status: 'success' | 'generating' | 'error';
-  standard: string;
-  createdAt: string;
-  description: string;
-}
+type TabType = 'raw' | 'final' | 'qc' | 'metadata' | 'files';
 
-// TODO: Replace with real data from API
-const getProductById = (id: string): ProductData | null => {
-  const products = {
-    '1': {
-      id: '1',
-      name: 'Numbers and Operations - Class 3',
-      type: 'Course',
-      status: 'success' as const,
-      standard: 'CBSE.MATH.CLASS3.NUMBERS',
-      createdAt: '2024-01-15 14:30',
-      description: 'Comprehensive course covering basic number operations for Class 3 students following CBSE curriculum.'
-    },
-    '2': {
-      id: '2',
-      name: 'Reading Comprehension - Class 4',
-      type: 'Module',
-      status: 'generating' as const,
-      standard: 'CBSE.ENGLISH.CLASS4.READING',
-      createdAt: '2024-01-15 13:45',
-      description: 'Interactive module focusing on reading comprehension skills for Class 4 English curriculum.'
-    },
-    '3': {
-      id: '3',
-      name: 'Plant Life Cycle - Class 5',
-      type: 'Lesson',
-      status: 'error' as const,
-      standard: 'CBSE.SCIENCE.CLASS5.PLANTS',
-      createdAt: '2024-01-15 12:20',
-      description: 'Detailed lesson on plant life cycles for Class 5 Science curriculum.'
-    }
-  };
-  return products[id as keyof typeof products] || null;
+const getStatusVariant = (status: Product['status']) => {
+  switch (status) {
+    case 'published': return 'success';
+    case 'draft': return 'pending';
+    case 'review': return 'generating';
+    case 'archived': return 'error';
+    default: return 'pending';
+  }
 };
-
-type TabType = 'raw' | 'final' | 'metadata' | 'files';
 
 export const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('raw');
   
-  const product = id ? getProductById(id) : null;
+  const { data: product, isLoading, error } = useProductQuery(id!);
+  const updateStatusMutation = useUpdateProductStatus();
 
-  if (!product) {
+  // TODO: Feature flag for status update - can be hidden/shown as needed
+  const showStatusUpdate = false;
+
+  const handleStatusUpdate = (newStatus: Product['status']) => {
+    if (id) {
+      updateStatusMutation.mutate({ id, status: newStatus });
+    }
+  };
+
+  if (isLoading) {
     return (
       <PageContainer>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-neutral-900 mb-2">Product not found</h2>
-          <p className="text-neutral-600 mb-4">The product you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/products')}>Back to Products</Button>
+        <div className="flex justify-center items-center py-12">
+          <Spinner size="lg" />
+          <span className="ml-3 text-neutral-600">Loading product details...</span>
         </div>
       </PageContainer>
     );
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'success': return 'Completed';
-      case 'generating': return 'Generating';
-      case 'error': return 'Error';
-      default: return status;
-    }
-  };
+  if (error || !product) {
+    return (
+      <PageContainer>
+        <EmptyState
+          title="Product not found"
+          description="The product you're looking for doesn't exist or failed to load."
+          action={<Button onClick={() => navigate('/products')}>Back to Products</Button>}
+        />
+      </PageContainer>
+    );
+  }
 
   const tabs = [
-    { id: 'raw', label: 'Raw Output' },
-    { id: 'final', label: 'Final Output' },
+    { id: 'raw', label: 'Raw JSON' },
+    { id: 'final', label: 'Final JSON' },
+    { id: 'qc', label: 'QC Report' },
     { id: 'metadata', label: 'Metadata' },
     { id: 'files', label: 'Files' }
   ];
@@ -95,9 +77,15 @@ export const ProductDetail: React.FC = () => {
         description={product.description}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/products')}>Back</Button>
-            <Button variant="outline">Edit</Button>
-            <Button variant="primary">Download</Button>
+            <Button variant="outline" onClick={() => navigate('/products')}>
+              Back
+            </Button>
+            <Button variant="outline" disabled>
+              Edit
+            </Button>
+            <Button variant="primary" disabled>
+              Download
+            </Button>
           </div>
         }
       />
@@ -108,27 +96,56 @@ export const ProductDetail: React.FC = () => {
           {/* Product Summary */}
           <Card className="mb-6">
             <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">{product.name}</h2>
-                <p className="text-neutral-600">{product.description}</p>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+                  {product.name}
+                </h2>
+                {product.description && (
+                  <p className="text-neutral-600">{product.description}</p>
+                )}
               </div>
-              <StatusBadge status={product.status}>
-                {getStatusLabel(product.status)}
-              </StatusBadge>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={getStatusVariant(product.status)}>
+                  {product.status}
+                </StatusBadge>
+                
+                {/* TODO: Status update control - hidden behind feature flag */}
+                {showStatusUpdate && (
+                  <select
+                    value={product.status}
+                    onChange={(e) => handleStatusUpdate(e.target.value as Product['status'])}
+                    disabled={updateStatusMutation.isLoading}
+                    className="text-sm border border-neutral-300 rounded px-2 py-1"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="review">Review</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                )}
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-neutral-200">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-neutral-200">
               <div>
                 <p className="text-sm font-medium text-neutral-500">Type</p>
-                <p className="text-sm text-neutral-900">{product.type}</p>
+                <p className="text-sm text-neutral-900 capitalize">{product.type}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Standard</p>
-                <p className="text-xs font-mono text-neutral-900">{product.standard}</p>
+                <p className="text-xs font-mono text-neutral-900">
+                  {product.standardCode || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Grade</p>
+                <p className="text-sm text-neutral-900">{product.grade || '—'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Created</p>
-                <p className="text-sm text-neutral-900">{product.createdAt}</p>
+                <p className="text-sm text-neutral-900">
+                  {new Date(product.createdAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </Card>
@@ -141,7 +158,7 @@ export const ProductDetail: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
                         ? 'border-primary-500 text-primary-600'
                         : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
@@ -157,20 +174,45 @@ export const ProductDetail: React.FC = () => {
             <div className="min-h-96">
               {activeTab === 'raw' && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw AI Output</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <p className="text-neutral-600 text-sm">Raw AI-generated content will be displayed here...</p>
-                    {/* TODO: Add JSON viewer or formatted content display */}
+                    {product.rawJson ? (
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                        {JSON.stringify(product.rawJson, null, 2)}
+                      </pre>
+                    ) : (
+                      <p className="text-neutral-600 text-sm">No raw JSON data available</p>
+                    )}
                   </div>
                 </div>
               )}
               
               {activeTab === 'final' && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final Processed Output</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                    <p className="text-neutral-600 text-sm">Final processed content will be displayed here...</p>
-                    {/* TODO: Add formatted content display */}
+                    {product.finalJson ? (
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                        {JSON.stringify(product.finalJson, null, 2)}
+                      </pre>
+                    ) : (
+                      <p className="text-neutral-600 text-sm">No final JSON data available</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {activeTab === 'qc' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">QC Report</h3>
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                    {product.qcReport ? (
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                        {JSON.stringify(product.qcReport, null, 2)}
+                      </pre>
+                    ) : (
+                      <p className="text-neutral-600 text-sm">No QC report available</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -178,17 +220,14 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'metadata' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Product Metadata</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                        <p className="text-sm font-medium text-neutral-700 mb-2">Generation Settings</p>
-                        <p className="text-neutral-600 text-sm">AI model parameters and settings...</p>
-                      </div>
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-                        <p className="text-sm font-medium text-neutral-700 mb-2">Processing Info</p>
-                        <p className="text-neutral-600 text-sm">Processing timestamps and logs...</p>
-                      </div>
-                    </div>
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                    {product.metadata ? (
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                        {JSON.stringify(product.metadata, null, 2)}
+                      </pre>
+                    ) : (
+                      <p className="text-neutral-600 text-sm">No metadata available</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -197,21 +236,21 @@ export const ProductDetail: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Generated Files</h3>
                   <div className="space-y-3">
-                    {/* TODO: Replace with real file list */}
-                    <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
-                      <div>
-                        <p className="font-medium text-neutral-900">course-content.pdf</p>
-                        <p className="text-sm text-neutral-500">PDF • 2.4 MB</p>
-                      </div>
-                      <Button variant="outline" size="sm">Download</Button>
-                    </div>
-                    <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
-                      <div>
-                        <p className="font-medium text-neutral-900">lesson-plan.docx</p>
-                        <p className="text-sm text-neutral-500">Word Document • 1.2 MB</p>
-                      </div>
-                      <Button variant="outline" size="sm">Download</Button>
-                    </div>
+                    {product.files && product.files.length > 0 ? (
+                      product.files.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
+                          <div>
+                            <p className="font-medium text-neutral-900">{file}</p>
+                            <p className="text-sm text-neutral-500">File</p>
+                          </div>
+                          <Button variant="outline" size="sm" disabled>
+                            Download
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-neutral-600 text-sm">No files available</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -221,15 +260,20 @@ export const ProductDetail: React.FC = () => {
 
         {/* Sidebar */}
         <div>
-          <Section title="Quick Actions">
-            <Card>
-              <div className="space-y-3">
-                <Button variant="primary" fullWidth>Regenerate</Button>
-                <Button variant="outline" fullWidth>Duplicate</Button>
-                <Button variant="outline" fullWidth>Export All</Button>
-              </div>
-            </Card>
-          </Section>
+          <Card>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
+              <Button variant="primary" fullWidth disabled>
+                Regenerate
+              </Button>
+              <Button variant="outline" fullWidth disabled>
+                Duplicate
+              </Button>
+              <Button variant="outline" fullWidth disabled>
+                Export All
+              </Button>
+            </div>
+          </Card>
         </div>
       </div>
     </PageContainer>

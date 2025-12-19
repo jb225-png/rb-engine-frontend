@@ -33,10 +33,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // TODO: Add global error handling (e.g., redirect to login on 401)
+    console.error('API Error:', error.response?.data || error.message);
+    
     if (error.response?.status === 401) {
-      // Handle unauthorized
+      // TODO: Handle unauthorized - redirect to login
+      console.warn('Unauthorized request');
     }
+    
     return Promise.reject(error);
   }
 );

@@ -1,90 +1,67 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
-import { StatusBadge } from '../components/ui/StatusBadge';
-import { FilterBar } from '../components/ui/FilterBar';
-import { FilterSelect } from '../components/ui/FilterSelect';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Spinner } from '../components/ui/Spinner';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { Pagination } from '../components/ui/Pagination';
+import { Select } from '../components/ui/Select';
+import { Input } from '../components/ui/Input';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-
-interface Product {
-  id: string;
-  name: string;
-  type: string;
-  status: 'success' | 'generating' | 'error';
-  standard: string;
-  createdAt: string;
-}
-
-// TODO: Replace with real data from API
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Numbers and Operations - Class 3',
-    type: 'Course',
-    status: 'success',
-    standard: 'CBSE.MATH.CLASS3.NUMBERS',
-    createdAt: '2024-01-15 14:30'
-  },
-  {
-    id: '2',
-    name: 'Reading Comprehension - Class 4',
-    type: 'Module',
-    status: 'generating',
-    standard: 'CBSE.ENGLISH.CLASS4.READING',
-    createdAt: '2024-01-15 13:45'
-  },
-  {
-    id: '3',
-    name: 'Plant Life Cycle - Class 5',
-    type: 'Lesson',
-    status: 'error',
-    standard: 'CBSE.SCIENCE.CLASS5.PLANTS',
-    createdAt: '2024-01-15 12:20'
-  }
-];
+import { useProductsQuery } from '../hooks/useProducts';
+import { Product } from '../types/api';
 
 const statusOptions = [
-  { value: 'success', label: 'Completed' },
-  { value: 'generating', label: 'Generating' },
-  { value: 'error', label: 'Error' }
+  { value: '', label: 'All Statuses' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'review', label: 'Review' },
+  { value: 'published', label: 'Published' },
+  { value: 'archived', label: 'Archived' },
 ];
 
 const typeOptions = [
+  { value: '', label: 'All Types' },
   { value: 'course', label: 'Course' },
   { value: 'module', label: 'Module' },
   { value: 'lesson', label: 'Lesson' },
   { value: 'assessment', label: 'Assessment' },
   { value: 'activity', label: 'Activity' },
-  { value: 'resource', label: 'Resource' }
+  { value: 'resource', label: 'Resource' },
 ];
 
+const getStatusVariant = (status: Product['status']) => {
+  switch (status) {
+    case 'published': return 'success';
+    case 'draft': return 'pending';
+    case 'review': return 'generating';
+    case 'archived': return 'error';
+    default: return 'pending';
+  }
+};
+
 export const Products: React.FC = () => {
-  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredProducts = mockProducts.filter(product => {
-    const matchesStatus = !statusFilter || product.status === statusFilter;
-    const matchesType = !typeFilter || product.type.toLowerCase() === typeFilter;
-    return matchesStatus && matchesType;
+  const { data, isLoading, error } = useProductsQuery({
+    page,
+    limit: 20,
+    status: statusFilter as Product['status'] || undefined,
+    type: typeFilter as Product['type'] || undefined,
+    search: searchQuery || undefined,
   });
 
-  const clearFilters = () => {
-    setStatusFilter('');
-    setTypeFilter('');
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'success': return 'Completed';
-      case 'generating': return 'Generating';
-      case 'error': return 'Error';
-      default: return status;
-    }
+  const handleFilterChange = () => {
+    setPage(1); // Reset to first page when filters change
   };
 
   return (
@@ -92,89 +69,137 @@ export const Products: React.FC = () => {
       <PageHeader
         title="Products"
         description="Manage your curriculum products and content"
-        actions={<Button variant="primary">Create Product</Button>}
+        actions={<Button variant="primary">Create New Product</Button>}
       />
 
       <Card>
-        <h2 className="text-xl font-semibold text-neutral-900 mb-4">All Products</h2>
-        
         {/* Filters */}
-        <FilterBar onClear={clearFilters}>
-          <FilterSelect
-            label="Status"
-            value={statusFilter}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Input
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              handleFilterChange();
+            }}
+          />
+          <Select
+            placeholder="Filter by status"
             options={statusOptions}
-            onChange={setStatusFilter}
-            placeholder="All Statuses"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              handleFilterChange();
+            }}
           />
-          <FilterSelect
-            label="Type"
-            value={typeFilter}
+          <Select
+            placeholder="Filter by type"
             options={typeOptions}
-            onChange={setTypeFilter}
-            placeholder="All Types"
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              handleFilterChange();
+            }}
           />
-        </FilterBar>
-        
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeader>Product Name</TableHeader>
-              <TableHeader>Type</TableHeader>
-              <TableHeader>Status</TableHeader>
-              <TableHeader>Standard</TableHeader>
-              <TableHeader>Created</TableHeader>
-              <TableHeader>Actions</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <TableRow 
-                  key={product.id} 
-                  clickable
-                  onClick={() => navigate(`/products/${product.id}`)}
-                >
-                  <TableCell>
-                    <span className="font-medium">{product.name}</span>
-                  </TableCell>
-                  <TableCell>{product.type}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={product.status}>
-                      {getStatusLabel(product.status)}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs font-mono">{product.standard}</span>
-                  </TableCell>
-                  <TableCell>{product.createdAt}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/products/${product.id}`);
-                      }}
-                    >
-                      View
-                    </Button>
-                  </TableCell>
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <Spinner size="lg" />
+            <span className="ml-3 text-neutral-600">Loading products...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="py-12">
+            <EmptyState
+              title="Failed to load products"
+              description="There was an error loading the products. Please try again."
+              action={<Button variant="primary" onClick={() => window.location.reload()}>Retry</Button>}
+            />
+          </div>
+        )}
+
+        {/* Products Table */}
+        {!isLoading && !error && (
+          <>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeader>Product Name</TableHeader>
+                  <TableHeader>Type</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader>Standard</TableHeader>
+                  <TableHeader>Created</TableHeader>
+                  <TableHeader>Actions</TableHeader>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={6}>
-                  <EmptyState
-                    title={mockProducts.length === 0 ? "No products found" : "No products match your filters"}
-                    description={mockProducts.length === 0 ? "Create your first product to get started" : "Try adjusting your filter criteria"}
-                    action={mockProducts.length === 0 ? <Button variant="primary">Create Product</Button> : undefined}
-                  />
-                </TableCell>
-              </TableRow>
+              </TableHead>
+              <TableBody>
+                {data?.data.length ? (
+                  data.data.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <Link 
+                          to={`/products/${product.id}`}
+                          className="font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          {product.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="capitalize">{product.type}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={getStatusVariant(product.status)}>
+                          {product.status}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell>{product.standardCode || '—'}</TableCell>
+                      <TableCell>
+                        {new Date(product.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            as={Link}
+                            to={`/products/${product.id}`}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <EmptyState
+                        title="No products found"
+                        description="No products match your current filters. Try adjusting your search criteria."
+                        action={<Button variant="primary">Create New Product</Button>}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            {data?.pagination && data.pagination.totalPages > 1 && (
+              <div className="mt-6 pt-6 border-t border-neutral-200">
+                <Pagination
+                  currentPage={data.pagination.page}
+                  totalPages={data.pagination.totalPages}
+                  totalItems={data.pagination.total}
+                  itemsPerPage={data.pagination.limit}
+                  onPageChange={handlePageChange}
+                />
+              </div>
             )}
-          </TableBody>
-        </Table>
+          </>
+        )}
       </Card>
     </PageContainer>
   );
