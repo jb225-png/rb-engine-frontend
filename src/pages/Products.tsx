@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -10,8 +10,9 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { Pagination } from '../components/ui/Pagination';
 import { Select } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
+import { Alert } from '../components/ui/Alert';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { useProductsQuery } from '../hooks/useProducts';
+import { useProductsQuery, useUpdateProductStatus } from '../hooks/useProducts';
 import { Product } from '../types/api';
 
 const statusOptions = [
@@ -43,10 +44,14 @@ const getStatusVariant = (status: Product['status']) => {
 };
 
 export const Products: React.FC = () => {
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Get filters from URL params
+  const page = parseInt(searchParams.get('page') || '1');
+  const statusFilter = searchParams.get('status') || '';
+  const typeFilter = searchParams.get('type') || '';
+  const searchQuery = searchParams.get('search') || '';
 
   const { data, isLoading, error } = useProductsQuery({
     page,
@@ -56,12 +61,46 @@ export const Products: React.FC = () => {
     search: searchQuery || undefined,
   });
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+  const updateStatusMutation = useUpdateProductStatus();
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  const updateSearchParams = (updates: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    
+    // Reset page when filters change
+    if (Object.keys(updates).some(key => key !== 'page')) {
+      newParams.delete('page');
+    }
+    
+    setSearchParams(newParams);
   };
 
-  const handleFilterChange = () => {
-    setPage(1); // Reset to first page when filters change
+  const handlePageChange = (newPage: number) => {
+    updateSearchParams({ page: newPage.toString() });
+  };
+
+  const handleStatusUpdate = async (productId: string, newStatus: Product['status']) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id: productId, status: newStatus });
+      setSuccessMessage('Product status updated successfully');
+    } catch (error) {
+      console.error('Failed to update product status:', error);
+    }
   };
 
   return (
@@ -72,35 +111,37 @@ export const Products: React.FC = () => {
         actions={<Button variant="primary">Create New Product</Button>}
       />
 
+      {successMessage && (
+        <Alert variant="success" title="Success" description={successMessage} />
+      )}
+
       <Card>
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Input
             placeholder="Search products..."
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              handleFilterChange();
-            }}
+            onChange={(e) => updateSearchParams({ search: e.target.value })}
           />
           <Select
             placeholder="Filter by status"
             options={statusOptions}
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              handleFilterChange();
-            }}
+            onChange={(e) => updateSearchParams({ status: e.target.value })}
           />
           <Select
             placeholder="Filter by type"
             options={typeOptions}
             value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              handleFilterChange();
-            }}
+            onChange={(e) => updateSearchParams({ type: e.target.value })}
           />
+          <Button
+            variant="outline"
+            onClick={() => setSearchParams({})}
+            disabled={!statusFilter && !typeFilter && !searchQuery}
+          >
+            Clear Filters
+          </Button>
         </div>
 
         {/* Loading State */}
@@ -114,10 +155,10 @@ export const Products: React.FC = () => {
         {/* Error State */}
         {error && (
           <div className="py-12">
-            <EmptyState
+            <Alert
+              variant="error"
               title="Failed to load products"
               description="There was an error loading the products. Please try again."
-              action={<Button variant="primary" onClick={() => window.location.reload()}>Retry</Button>}
             />
           </div>
         )}
@@ -150,25 +191,36 @@ export const Products: React.FC = () => {
                       </TableCell>
                       <TableCell className="capitalize">{product.type}</TableCell>
                       <TableCell>
-                        <StatusBadge status={getStatusVariant(product.status)}>
-                          {product.status}
-                        </StatusBadge>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={getStatusVariant(product.status)}>
+                            {product.status}
+                          </StatusBadge>
+                          <select
+                            value={product.status}
+                            onChange={(e) => handleStatusUpdate(product.id, e.target.value as Product['status'])}
+                            disabled={updateStatusMutation.isLoading}
+                            className="text-xs border border-neutral-300 rounded px-1 py-0.5 ml-2"
+                          >
+                            <option value="draft">Draft</option>
+                            <option value="review">Review</option>
+                            <option value="published">Published</option>
+                            <option value="archived">Archived</option>
+                          </select>
+                        </div>
                       </TableCell>
                       <TableCell>{product.standardCode || '—'}</TableCell>
                       <TableCell>
                         {new Date(product.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            as={Link}
-                            to={`/products/${product.id}`}
-                          >
-                            View
-                          </Button>
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          as={Link}
+                          to={`/products/${product.id}`}
+                        >
+                          View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -177,7 +229,11 @@ export const Products: React.FC = () => {
                     <TableCell colSpan={6}>
                       <EmptyState
                         title="No products found"
-                        description="No products match your current filters. Try adjusting your search criteria."
+                        description={
+                          statusFilter || typeFilter || searchQuery
+                            ? "No products match your current filters. Try adjusting your search criteria."
+                            : "No products have been created yet. Create your first product to get started."
+                        }
                         action={<Button variant="primary">Create New Product</Button>}
                       />
                     </TableCell>

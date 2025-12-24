@@ -6,6 +6,7 @@ export interface Product {
   status: 'draft' | 'review' | 'published' | 'archived';
   standardCode?: string;
   grade?: string;
+  jobId?: string; // Related generation job ID
   createdAt: string;
   updatedAt: string;
 }
@@ -17,6 +18,23 @@ export interface ProductDetail extends Product {
   finalJson?: Record<string, any>;
   qcReport?: Record<string, any>;
   files?: string[];
+}
+
+// Generation Job types
+export interface GenerationJob {
+  id: string;
+  standardCode: string;
+  status: 'pending' | 'generating' | 'success' | 'error';
+  productsCount?: number;
+  createdAt: string;
+  completedAt?: string;
+  errorMessage?: string;
+}
+
+export interface CreateGenerationJobRequest {
+  standardCode: string;
+  productType?: Product['type'];
+  description?: string;
 }
 
 // API Response types

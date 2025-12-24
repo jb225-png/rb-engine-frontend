@@ -14,11 +14,11 @@ export const Section: React.FC<SectionProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="border-b border-neutral-200 pb-4">
-        <h2 className="text-xl font-semibold text-neutral-900">{title}</h2>
+    <div className={`space-y-4 ${className}`}>
+      <div>
+        <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
         {description && (
-          <p className="text-sm text-neutral-600 mt-2">{description}</p>
+          <p className="text-sm text-neutral-600 mt-1">{description}</p>
         )}
       </div>
       {children}

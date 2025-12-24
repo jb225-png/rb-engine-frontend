@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -7,6 +7,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Alert } from '../components/ui/Alert';
 import { useProductQuery, useUpdateProductStatus } from '../hooks/useProducts';
 import { Product } from '../types/api';
 
@@ -22,20 +23,52 @@ const getStatusVariant = (status: Product['status']) => {
   }
 };
 
+const tabs = [
+  { id: 'raw', label: 'Raw JSON' },
+  { id: 'final', label: 'Final JSON' },
+  { id: 'qc', label: 'QC Report' },
+  { id: 'metadata', label: 'Metadata' },
+  { id: 'files', label: 'Files' }
+];
+
 export const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('raw');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Get active tab from URL params, default to 'raw'
+  const activeTab = (searchParams.get('tab') as TabType) || 'raw';
   
   const { data: product, isLoading, error } = useProductQuery(id!);
   const updateStatusMutation = useUpdateProductStatus();
 
-  // TODO: Feature flag for status update - can be hidden/shown as needed
-  const showStatusUpdate = false;
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
-  const handleStatusUpdate = (newStatus: Product['status']) => {
-    if (id) {
-      updateStatusMutation.mutate({ id, status: newStatus });
+  const setActiveTab = (tab: TabType) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (tab === 'raw') {
+      newParams.delete('tab'); // Remove tab param for default tab
+    } else {
+      newParams.set('tab', tab);
+    }
+    setSearchParams(newParams);
+  };
+
+  const handleStatusUpdate = async (newStatus: Product['status']) => {
+    if (!id) return;
+    
+    try {
+      await updateStatusMutation.mutateAsync({ id, status: newStatus });
+      setSuccessMessage('Product status updated successfully');
+    } catch (error) {
+      console.error('Failed to update product status:', error);
     }
   };
 
@@ -53,22 +86,17 @@ export const ProductDetail: React.FC = () => {
   if (error || !product) {
     return (
       <PageContainer>
-        <EmptyState
+        <Alert
+          variant="error"
           title="Product not found"
           description="The product you're looking for doesn't exist or failed to load."
-          action={<Button onClick={() => navigate('/products')}>Back to Products</Button>}
         />
+        <div className="mt-4">
+          <Button onClick={() => navigate('/products')}>Back to Products</Button>
+        </div>
       </PageContainer>
     );
   }
-
-  const tabs = [
-    { id: 'raw', label: 'Raw JSON' },
-    { id: 'final', label: 'Final JSON' },
-    { id: 'qc', label: 'QC Report' },
-    { id: 'metadata', label: 'Metadata' },
-    { id: 'files', label: 'Files' }
-  ];
 
   return (
     <PageContainer>
@@ -90,6 +118,10 @@ export const ProductDetail: React.FC = () => {
         }
       />
 
+      {successMessage && (
+        <Alert variant="success" title="Success" description={successMessage} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-3">
@@ -109,24 +141,21 @@ export const ProductDetail: React.FC = () => {
                   {product.status}
                 </StatusBadge>
                 
-                {/* TODO: Status update control - hidden behind feature flag */}
-                {showStatusUpdate && (
-                  <select
-                    value={product.status}
-                    onChange={(e) => handleStatusUpdate(e.target.value as Product['status'])}
-                    disabled={updateStatusMutation.isLoading}
-                    className="text-sm border border-neutral-300 rounded px-2 py-1"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="review">Review</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                )}
+                <select
+                  value={product.status}
+                  onChange={(e) => handleStatusUpdate(e.target.value as Product['status'])}
+                  disabled={updateStatusMutation.isLoading}
+                  className="text-sm border border-neutral-300 rounded px-2 py-1"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="review">Review</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-neutral-200">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t border-neutral-200">
               <div>
                 <p className="text-sm font-medium text-neutral-500">Type</p>
                 <p className="text-sm text-neutral-900 capitalize">{product.type}</p>
@@ -140,6 +169,12 @@ export const ProductDetail: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-neutral-500">Grade</p>
                 <p className="text-sm text-neutral-900">{product.grade || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Related Job</p>
+                <p className="text-xs font-mono text-neutral-900">
+                  {product.jobId ? `#${product.jobId.slice(-8)}` : '—'}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Created</p>
@@ -175,7 +210,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'raw' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON</h3>
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.rawJson ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
                         {JSON.stringify(product.rawJson, null, 2)}
@@ -190,7 +225,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'final' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON</h3>
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.finalJson ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
                         {JSON.stringify(product.finalJson, null, 2)}
@@ -205,7 +240,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'qc' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">QC Report</h3>
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.qcReport ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
                         {JSON.stringify(product.qcReport, null, 2)}
@@ -220,7 +255,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'metadata' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Product Metadata</h3>
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.metadata ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
                         {JSON.stringify(product.metadata, null, 2)}
@@ -249,7 +284,10 @@ export const ProductDetail: React.FC = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="text-neutral-600 text-sm">No files available</p>
+                      <EmptyState
+                        title="No files available"
+                        description="Generated files will appear here once the product is processed."
+                      />
                     )}
                   </div>
                 </div>

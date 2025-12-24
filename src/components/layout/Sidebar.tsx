@@ -5,6 +5,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/products', label: 'Products', icon: '📦' },
   { path: '/quick-generate', label: 'Quick Generate', icon: '⚡' },
+  { path: '/jobs', label: 'Generation Jobs', icon: '🔄' },
   { path: '/upload-queue', label: 'Upload Queue', icon: '📤' },
   { path: '/bundles', label: 'Bundles', icon: '📚' },
 ];
