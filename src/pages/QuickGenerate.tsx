@@ -157,12 +157,13 @@ export const QuickGenerate: React.FC = () => {
         }
       />
 
+      {/* Success and Error Messages */}
       {successMessage && (
-        <Alert variant="success" title="Success" description={successMessage} />
+        <Alert variant="success" title="Generation Job Created!" description={successMessage} />
       )}
 
       {errorMessage && (
-        <Alert variant="error" title="Error" description={errorMessage} />
+        <Alert variant="error" title="Generation Failed" description={errorMessage} />
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -197,40 +198,43 @@ export const QuickGenerate: React.FC = () => {
                 title="Product Configuration"
                 description="Specify the type of content to generate (optional)"
               >
-                <Select
-                  label="Product Type"
-                  options={productTypeOptions}
-                  value={formData.productType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, productType: e.target.value as Product['type'] || '' }))}
-                  helperText="Leave blank to let AI choose the best product type"
-                  disabled={createJobMutation.isLoading}
-                />
-                
-                <Input
-                  label="Additional Description"
-                  value={formData.description}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, description: e.target.value }));
-                    if (formErrors.description) {
-                      setFormErrors(prev => ({ ...prev, description: undefined }));
-                    }
-                  }}
-                  placeholder="Any specific requirements or context..."
-                  helperText={`Optional: Provide additional context (${formData.description.length}/500 characters)`}
-                  error={formErrors.description}
-                  disabled={createJobMutation.isLoading}
-                />
+                <div className="space-y-4">
+                  <Select
+                    label="Product Type"
+                    options={productTypeOptions}
+                    value={formData.productType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, productType: e.target.value as Product['type'] || '' }))}
+                    helperText="Leave blank to let AI choose the best product type for your standard"
+                    disabled={createJobMutation.isLoading}
+                  />
+                  
+                  <Input
+                    label="Additional Description"
+                    value={formData.description}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, description: e.target.value }));
+                      if (formErrors.description) {
+                        setFormErrors(prev => ({ ...prev, description: undefined }));
+                      }
+                    }}
+                    placeholder="Any specific requirements, grade level, or context..."
+                    helperText={`Optional: Provide additional context to improve generation quality (${formData.description.length}/500 characters)`}
+                    error={formErrors.description}
+                    disabled={createJobMutation.isLoading}
+                  />
+                </div>
               </FormSection>
 
               {/* Submit Section */}
-              <div className="flex gap-4 pt-4 border-t border-neutral-200">
+              <div className="flex gap-4 pt-6 border-t border-neutral-200">
                 <Button
                   type="submit"
                   variant="primary"
                   loading={createJobMutation.isLoading}
                   disabled={!isFormValid() || createJobMutation.isLoading}
+                  className="min-w-[140px]"
                 >
-                  {createJobMutation.isLoading ? 'Creating Job...' : 'Generate Product'}
+                  {createJobMutation.isLoading ? 'Creating...' : 'Generate Product'}
                 </Button>
                 <Button
                   type="button"
@@ -240,6 +244,11 @@ export const QuickGenerate: React.FC = () => {
                 >
                   Reset Form
                 </Button>
+                {!isFormValid() && formData.standardCode.trim().length > 0 && (
+                  <p className="text-sm text-neutral-500 self-center ml-2">
+                    {formData.standardCode.trim().length < 3 ? 'Standard code too short' : 'Check form errors'}
+                  </p>
+                )}
               </div>
             </form>
           </Card>
@@ -255,9 +264,9 @@ export const QuickGenerate: React.FC = () => {
                 <Spinner size="md" />
               </div>
             ) : recentJobs?.data.length ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {recentJobs.data.map((job) => (
-                  <div key={job.id} className="p-4 border border-neutral-200 rounded-lg">
+                  <div key={job.id} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-neutral-900 truncate">
@@ -273,7 +282,7 @@ export const QuickGenerate: React.FC = () => {
                     </div>
                     {job.productsCount && (
                       <p className="text-xs text-neutral-600 mb-2">
-                        {job.productsCount} products
+                        {job.productsCount} product{job.productsCount !== 1 ? 's' : ''} generated
                       </p>
                     )}
                     <p className="text-xs text-neutral-400">
@@ -285,11 +294,11 @@ export const QuickGenerate: React.FC = () => {
             ) : (
               <EmptyState
                 title="No recent jobs"
-                description="Your generation jobs will appear here"
+                description="Your generation jobs will appear here after you create them"
               />
             )}
 
-            <div className="mt-4 pt-4 border-t border-neutral-200">
+            <div className="mt-6 pt-4 border-t border-neutral-200">
               <Button 
                 variant="outline" 
                 className="w-full text-sm"

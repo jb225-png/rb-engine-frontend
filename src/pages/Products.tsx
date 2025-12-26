@@ -117,7 +117,7 @@ export const Products: React.FC = () => {
 
       <Card>
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
           <Input
             placeholder="Search products..."
             value={searchQuery}
@@ -191,7 +191,7 @@ export const Products: React.FC = () => {
                       </TableCell>
                       <TableCell className="capitalize">{product.type}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <StatusBadge status={getStatusVariant(product.status)}>
                             {product.status}
                           </StatusBadge>
@@ -199,7 +199,7 @@ export const Products: React.FC = () => {
                             value={product.status}
                             onChange={(e) => handleStatusUpdate(product.id, e.target.value as Product['status'])}
                             disabled={updateStatusMutation.isLoading}
-                            className="text-xs border border-neutral-300 rounded px-1 py-0.5 ml-2"
+                            className="text-xs border border-neutral-300 rounded px-2 py-1 bg-white hover:border-neutral-400 focus:border-primary-500 focus:outline-none"
                           >
                             <option value="draft">Draft</option>
                             <option value="review">Review</option>
@@ -218,8 +218,9 @@ export const Products: React.FC = () => {
                           size="sm"
                           as={Link}
                           to={`/products/${product.id}`}
+                          className="hover:bg-primary-50 hover:border-primary-300"
                         >
-                          View
+                          View Details
                         </Button>
                       </TableCell>
                     </TableRow>

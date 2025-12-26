@@ -127,16 +127,16 @@ export const ProductDetail: React.FC = () => {
         <div className="lg:col-span-3">
           {/* Product Summary */}
           <Card className="mb-6">
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+                <h2 className="text-2xl font-semibold text-neutral-900 mb-3">
                   {product.name}
                 </h2>
                 {product.description && (
-                  <p className="text-neutral-600">{product.description}</p>
+                  <p className="text-neutral-600 text-lg leading-relaxed">{product.description}</p>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <StatusBadge status={getStatusVariant(product.status)}>
                   {product.status}
                 </StatusBadge>
@@ -145,7 +145,7 @@ export const ProductDetail: React.FC = () => {
                   value={product.status}
                   onChange={(e) => handleStatusUpdate(e.target.value as Product['status'])}
                   disabled={updateStatusMutation.isLoading}
-                  className="text-sm border border-neutral-300 rounded px-2 py-1"
+                  className="text-sm border border-neutral-300 rounded px-3 py-2 bg-white hover:border-neutral-400 focus:border-primary-500 focus:outline-none"
                 >
                   <option value="draft">Draft</option>
                   <option value="review">Review</option>
@@ -155,30 +155,30 @@ export const ProductDetail: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t border-neutral-200">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-6 border-t border-neutral-200">
               <div>
-                <p className="text-sm font-medium text-neutral-500">Type</p>
-                <p className="text-sm text-neutral-900 capitalize">{product.type}</p>
+                <p className="text-sm font-medium text-neutral-500 mb-1">Product Type</p>
+                <p className="text-sm text-neutral-900 capitalize font-medium">{product.type}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Standard</p>
-                <p className="text-xs font-mono text-neutral-900">
+                <p className="text-sm font-medium text-neutral-500 mb-1">Standard Code</p>
+                <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
                   {product.standardCode || '—'}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Grade</p>
-                <p className="text-sm text-neutral-900">{product.grade || '—'}</p>
+                <p className="text-sm font-medium text-neutral-500 mb-1">Grade Level</p>
+                <p className="text-sm text-neutral-900 font-medium">{product.grade || '—'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Related Job</p>
-                <p className="text-xs font-mono text-neutral-900">
+                <p className="text-sm font-medium text-neutral-500 mb-1">Generation Job</p>
+                <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
                   {product.jobId ? `#${product.jobId.slice(-8)}` : '—'}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Created</p>
-                <p className="text-sm text-neutral-900">
+                <p className="text-sm font-medium text-neutral-500 mb-1">Created Date</p>
+                <p className="text-sm text-neutral-900 font-medium">
                   {new Date(product.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -209,14 +209,17 @@ export const ProductDetail: React.FC = () => {
             <div className="min-h-96">
               {activeTab === 'raw' && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON Data</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.rawJson ? (
-                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
                         {JSON.stringify(product.rawJson, null, 2)}
                       </pre>
                     ) : (
-                      <p className="text-neutral-600 text-sm">No raw JSON data available</p>
+                      <div className="text-center py-8">
+                        <p className="text-neutral-500 mb-2">No raw JSON data available</p>
+                        <p className="text-sm text-neutral-400">Raw data will appear here after the product is generated</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -224,14 +227,17 @@ export const ProductDetail: React.FC = () => {
               
               {activeTab === 'final' && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON Data</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.finalJson ? (
-                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
                         {JSON.stringify(product.finalJson, null, 2)}
                       </pre>
                     ) : (
-                      <p className="text-neutral-600 text-sm">No final JSON data available</p>
+                      <div className="text-center py-8">
+                        <p className="text-neutral-500 mb-2">No final JSON data available</p>
+                        <p className="text-sm text-neutral-400">Final processed data will appear here after QC completion</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -239,14 +245,17 @@ export const ProductDetail: React.FC = () => {
               
               {activeTab === 'qc' && (
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">QC Report</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quality Control Report</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.qcReport ? (
-                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
                         {JSON.stringify(product.qcReport, null, 2)}
                       </pre>
                     ) : (
-                      <p className="text-neutral-600 text-sm">No QC report available</p>
+                      <div className="text-center py-8">
+                        <p className="text-neutral-500 mb-2">No QC report available</p>
+                        <p className="text-sm text-neutral-400">Quality control reports will appear here after automated review</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -257,11 +266,14 @@ export const ProductDetail: React.FC = () => {
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Product Metadata</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.metadata ? (
-                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap">
+                      <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
                         {JSON.stringify(product.metadata, null, 2)}
                       </pre>
                     ) : (
-                      <p className="text-neutral-600 text-sm">No metadata available</p>
+                      <div className="text-center py-8">
+                        <p className="text-neutral-500 mb-2">No metadata available</p>
+                        <p className="text-sm text-neutral-400">Product metadata and configuration will appear here</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -273,10 +285,10 @@ export const ProductDetail: React.FC = () => {
                   <div className="space-y-3">
                     {product.files && product.files.length > 0 ? (
                       product.files.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors">
                           <div>
                             <p className="font-medium text-neutral-900">{file}</p>
-                            <p className="text-sm text-neutral-500">File</p>
+                            <p className="text-sm text-neutral-500">Generated file</p>
                           </div>
                           <Button variant="outline" size="sm" disabled>
                             Download
@@ -286,7 +298,7 @@ export const ProductDetail: React.FC = () => {
                     ) : (
                       <EmptyState
                         title="No files available"
-                        description="Generated files will appear here once the product is processed."
+                        description="Generated files will appear here once the product is processed and finalized."
                       />
                     )}
                   </div>
@@ -302,14 +314,24 @@ export const ProductDetail: React.FC = () => {
             <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <Button variant="primary" fullWidth disabled>
-                Regenerate
+                Regenerate Content
               </Button>
               <Button variant="outline" fullWidth disabled>
-                Duplicate
+                Duplicate Product
               </Button>
               <Button variant="outline" fullWidth disabled>
-                Export All
+                Export All Data
               </Button>
+            </div>
+            
+            <div className="mt-6 pt-4 border-t border-neutral-200">
+              <p className="text-sm text-neutral-500 mb-3">Coming Soon</p>
+              <div className="space-y-2 text-xs text-neutral-400">
+                <p>• Automated regeneration</p>
+                <p>• Product duplication</p>
+                <p>• Bulk export options</p>
+                <p>• Version history</p>
+              </div>
             </div>
           </Card>
         </div>

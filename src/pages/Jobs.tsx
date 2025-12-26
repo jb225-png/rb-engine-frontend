@@ -87,7 +87,7 @@ export const Jobs: React.FC = () => {
 
       <Card>
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
           <Select
             placeholder="Filter by status"
             options={statusOptions}

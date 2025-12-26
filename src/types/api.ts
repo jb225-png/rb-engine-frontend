@@ -53,6 +53,29 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Upload Task types
+export interface UploadTask {
+  id: string;
+  productId?: string;
+  productName?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  assignedUser?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Dashboard metrics
+export interface DashboardMetrics {
+  totalProducts: number;
+  totalGenerationJobs: number;
+  productsByStatus: {
+    draft: number;
+    review: number;
+    published: number;
+    archived: number;
+  };
+}
+
 // Query parameters
 export interface ProductsQueryParams {
   page?: number;
@@ -60,4 +83,10 @@ export interface ProductsQueryParams {
   status?: Product['status'];
   type?: Product['type'];
   search?: string;
+}
+
+export interface UploadTasksQueryParams {
+  page?: number;
+  limit?: number;
+  status?: UploadTask['status'];
 }
