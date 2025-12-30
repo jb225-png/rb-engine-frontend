@@ -7,6 +7,7 @@ export const useUploadTasksQuery = (params: UploadTasksQueryParams = {}) => {
     queryKey: ['upload-tasks', params],
     queryFn: () => uploadTasksApi.getUploadTasks(params),
     staleTime: 30 * 1000, // 30 seconds
+    retry: false,
   });
 };
 
@@ -15,5 +16,6 @@ export const useUploadTaskQuery = (id: string) => {
     queryKey: ['upload-tasks', id],
     queryFn: () => uploadTasksApi.getUploadTask(id),
     enabled: !!id,
+    retry: false,
   });
 };

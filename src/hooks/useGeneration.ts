@@ -6,17 +6,18 @@ import { CreateGenerationJobRequest } from '../types/api';
 export const generationKeys = {
   all: ['generation-jobs'] as const,
   lists: () => [...generationKeys.all, 'list'] as const,
-  list: (params: { page?: number; limit?: number }) => [...generationKeys.lists(), params] as const,
+  list: (params: { limit?: number; offset?: number }) => [...generationKeys.lists(), params] as const,
   details: () => [...generationKeys.all, 'detail'] as const,
   detail: (id: string) => [...generationKeys.details(), id] as const,
 };
 
 // Get generation jobs list
-export const useGenerationJobsQuery = (params: { page?: number; limit?: number } = {}) => {
+export const useGenerationJobsQuery = (params: { limit?: number; offset?: number } = {}) => {
   return useQuery({
     queryKey: generationKeys.list(params),
     queryFn: () => generationApi.getGenerationJobs(params),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
+    retry: false, // Don't retry API calls during development
   });
 };
 
@@ -26,6 +27,7 @@ export const useGenerationJobQuery = (id: string) => {
     queryKey: generationKeys.detail(id),
     queryFn: () => generationApi.getGenerationJob(id),
     enabled: !!id,
+    retry: false,
   });
 };
 

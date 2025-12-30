@@ -1,29 +1,19 @@
 import React from 'react';
 
-interface InputProps {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'className'> {
   label?: string;
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
   error?: string;
   helperText?: string;
-  type?: 'text' | 'email' | 'password' | 'number';
-  disabled?: boolean;
-  required?: boolean;
   className?: string;
 }
 
 export const Input: React.FC<InputProps> = ({
   label,
-  value,
-  onChange,
-  placeholder,
   error,
   helperText,
-  type = 'text',
-  disabled = false,
-  required = false,
   className = '',
+  required = false,
+  ...inputProps
 }) => {
   const inputId = React.useId();
   const errorId = error ? `${inputId}-error` : undefined;
@@ -40,11 +30,6 @@ export const Input: React.FC<InputProps> = ({
       
       <input
         id={inputId}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        disabled={disabled}
         required={required}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={[errorId, helperTextId].filter(Boolean).join(' ') || undefined}
@@ -57,6 +42,7 @@ export const Input: React.FC<InputProps> = ({
             : 'border-neutral-300 hover:border-neutral-400'
           }
         `}
+        {...inputProps}
       />
       
       {error && (

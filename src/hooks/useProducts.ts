@@ -16,7 +16,8 @@ export const useProductsQuery = (params: ProductsQueryParams = {}) => {
   return useQuery({
     queryKey: productKeys.list(params),
     queryFn: () => productsApi.getProducts(params),
-    keepPreviousData: true, // Keep previous data while loading new page
+    placeholderData: (previousData) => previousData, // Keep previous data while loading new page
+    retry: false,
   });
 };
 
@@ -26,6 +27,7 @@ export const useProductQuery = (id: string) => {
     queryKey: productKeys.detail(id),
     queryFn: () => productsApi.getProduct(id),
     enabled: !!id, // Only run query if ID exists
+    retry: false,
   });
 };
 

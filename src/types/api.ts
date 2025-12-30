@@ -2,39 +2,44 @@
 export interface Product {
   id: string;
   name: string;
-  type: 'course' | 'module' | 'lesson' | 'assessment' | 'activity' | 'resource';
-  status: 'draft' | 'review' | 'published' | 'archived';
-  standardCode?: string;
-  grade?: string;
-  jobId?: string; // Related generation job ID
-  createdAt: string;
-  updatedAt: string;
+  product_type: 'WORKSHEET' | 'PASSAGE' | 'QUIZ' | 'ASSESSMENT';
+  status: 'DRAFT' | 'GENERATED' | 'FAILED';
+  standard_id?: number;
+  generation_job_id?: string;
+  grade_level?: number;
+  curriculum_board?: string;
+  locale?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductDetail extends Product {
   description?: string;
   metadata?: Record<string, any>;
-  rawJson?: Record<string, any>;
-  finalJson?: Record<string, any>;
-  qcReport?: Record<string, any>;
+  raw_json?: Record<string, any>;
+  final_json?: Record<string, any>;
+  qc_report?: Record<string, any>;
   files?: string[];
 }
 
 // Generation Job types
 export interface GenerationJob {
   id: string;
-  standardCode: string;
-  status: 'pending' | 'generating' | 'success' | 'error';
-  productsCount?: number;
-  createdAt: string;
-  completedAt?: string;
-  errorMessage?: string;
+  standard_id: number;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  total_products?: number;
+  completed_products?: number;
+  failed_products?: number;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface CreateGenerationJobRequest {
-  standardCode: string;
-  productType?: Product['type'];
-  description?: string;
+  standard_id: number;
+  product_type?: Product['product_type'];
+  locale?: string;
+  curriculum_board?: string;
+  grade_level?: number;
 }
 
 // API Response types
@@ -56,23 +61,33 @@ export interface PaginatedResponse<T> {
 // Upload Task types
 export interface UploadTask {
   id: string;
-  productId?: string;
-  productName?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  assignedUser?: string;
-  createdAt: string;
-  updatedAt: string;
+  product_id?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  assigned_to?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Dashboard metrics
-export interface DashboardMetrics {
-  totalProducts: number;
-  totalGenerationJobs: number;
-  productsByStatus: {
-    draft: number;
-    review: number;
-    published: number;
-    archived: number;
+export interface DashboardStats {
+  total_products: number;
+  products_by_status: {
+    DRAFT: number;
+    GENERATED: number;
+    FAILED: number;
+  };
+  total_generation_jobs: number;
+  jobs_by_status: {
+    PENDING: number;
+    RUNNING: number;
+    COMPLETED: number;
+    FAILED: number;
+  };
+  total_upload_tasks: number;
+  tasks_by_status: {
+    PENDING: number;
+    IN_PROGRESS: number;
+    COMPLETED: number;
   };
 }
 
@@ -81,8 +96,14 @@ export interface ProductsQueryParams {
   page?: number;
   limit?: number;
   status?: Product['status'];
-  type?: Product['type'];
+  product_type?: Product['product_type'];
   search?: string;
+  generation_job_id?: string;
+  standard_id?: number;
+  curriculum_board?: string;
+  grade_level?: number;
+  locale?: string;
+  offset?: number;
 }
 
 export interface UploadTasksQueryParams {

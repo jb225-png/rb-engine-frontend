@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -15,18 +15,16 @@ import { UploadTask } from '../types/api';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'failed', label: 'Failed' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
 ];
 
 const getStatusVariant = (status: UploadTask['status']) => {
   switch (status) {
-    case 'completed': return 'success';
-    case 'processing': return 'generating';
-    case 'pending': return 'pending';
-    case 'failed': return 'error';
+    case 'COMPLETED': return 'success';
+    case 'IN_PROGRESS': return 'generating';
+    case 'PENDING': return 'pending';
     default: return 'pending';
   }
 };
@@ -69,10 +67,9 @@ export const UploadQueue: React.FC = () => {
 
   // Calculate stats from current data
   const stats = {
-    pending: data?.data.filter(task => task.status === 'pending').length || 0,
-    processing: data?.data.filter(task => task.status === 'processing').length || 0,
-    completed: data?.data.filter(task => task.status === 'completed').length || 0,
-    failed: data?.data.filter(task => task.status === 'failed').length || 0,
+    pending: data?.data.filter(task => task.status === 'PENDING').length || 0,
+    processing: data?.data.filter(task => task.status === 'IN_PROGRESS').length || 0,
+    completed: data?.data.filter(task => task.status === 'COMPLETED').length || 0,
   };
 
   return (
@@ -84,7 +81,7 @@ export const UploadQueue: React.FC = () => {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <h3 className="text-sm font-medium text-neutral-500 mb-2">Pending</h3>
           {isLoading ? (
@@ -97,7 +94,7 @@ export const UploadQueue: React.FC = () => {
           )}
         </Card>
         <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">Processing</h3>
+          <h3 className="text-sm font-medium text-neutral-500 mb-2">In Progress</h3>
           {isLoading ? (
             <Spinner size="sm" />
           ) : (
@@ -115,17 +112,6 @@ export const UploadQueue: React.FC = () => {
             <>
               <p className="text-3xl font-bold text-success-500">{stats.completed}</p>
               <p className="text-sm text-neutral-500 mt-1">Successfully processed</p>
-            </>
-          )}
-        </Card>
-        <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">Failed</h3>
-          {isLoading ? (
-            <Spinner size="sm" />
-          ) : (
-            <>
-              <p className="text-3xl font-bold text-error-500">{stats.failed}</p>
-              <p className="text-sm text-neutral-500 mt-1">Processing failed</p>
             </>
           )}
         </Card>
@@ -194,9 +180,9 @@ export const UploadQueue: React.FC = () => {
                       <TableCell>
                         <div>
                           <p className="font-medium text-neutral-900">
-                            {task.productName || 'Unnamed Product'}
+                            Product #{task.product_id || 'Unknown'}
                           </p>
-                          <p className="text-sm text-neutral-500">ID: {task.id.slice(-8)}</p>
+                          <p className="text-sm text-neutral-500">Task ID: {task.id.slice(-8)}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -204,12 +190,12 @@ export const UploadQueue: React.FC = () => {
                           {task.status}
                         </StatusBadge>
                       </TableCell>
-                      <TableCell>{task.assignedUser || '—'}</TableCell>
+                      <TableCell>{task.assigned_to || '—'}</TableCell>
                       <TableCell>
-                        {new Date(task.createdAt).toLocaleDateString()}
+                        {new Date(task.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {new Date(task.updatedAt).toLocaleDateString()}
+                        {new Date(task.updated_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm" disabled>

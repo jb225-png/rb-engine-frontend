@@ -15,10 +15,9 @@ type TabType = 'raw' | 'final' | 'qc' | 'metadata' | 'files';
 
 const getStatusVariant = (status: Product['status']) => {
   switch (status) {
-    case 'published': return 'success';
-    case 'draft': return 'pending';
-    case 'review': return 'generating';
-    case 'archived': return 'error';
+    case 'GENERATED': return 'success';
+    case 'DRAFT': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
@@ -144,13 +143,12 @@ export const ProductDetail: React.FC = () => {
                 <select
                   value={product.status}
                   onChange={(e) => handleStatusUpdate(e.target.value as Product['status'])}
-                  disabled={updateStatusMutation.isLoading}
+                  disabled={updateStatusMutation.isPending}
                   className="text-sm border border-neutral-300 rounded px-3 py-2 bg-white hover:border-neutral-400 focus:border-primary-500 focus:outline-none"
                 >
-                  <option value="draft">Draft</option>
-                  <option value="review">Review</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="GENERATED">Generated</option>
+                  <option value="FAILED">Failed</option>
                 </select>
               </div>
             </div>
@@ -158,28 +156,28 @@ export const ProductDetail: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-6 border-t border-neutral-200">
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Product Type</p>
-                <p className="text-sm text-neutral-900 capitalize font-medium">{product.type}</p>
+                <p className="text-sm text-neutral-900 capitalize font-medium">{product.product_type}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Standard Code</p>
                 <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
-                  {product.standardCode || '—'}
+                  {product.standard_id || '—'}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Grade Level</p>
-                <p className="text-sm text-neutral-900 font-medium">{product.grade || '—'}</p>
+                <p className="text-sm text-neutral-900 font-medium">{product.grade_level || '—'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Generation Job</p>
                 <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
-                  {product.jobId ? `#${product.jobId.slice(-8)}` : '—'}
+                  {product.generation_job_id ? `#${product.generation_job_id.slice(-8)}` : '—'}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Created Date</p>
                 <p className="text-sm text-neutral-900 font-medium">
-                  {new Date(product.createdAt).toLocaleDateString()}
+                  {new Date(product.created_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -211,9 +209,9 @@ export const ProductDetail: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON Data</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
-                    {product.rawJson ? (
+                    {product.raw_json ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
-                        {JSON.stringify(product.rawJson, null, 2)}
+                        {JSON.stringify(product.raw_json, null, 2)}
                       </pre>
                     ) : (
                       <div className="text-center py-8">
@@ -229,9 +227,9 @@ export const ProductDetail: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON Data</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
-                    {product.finalJson ? (
+                    {product.final_json ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
-                        {JSON.stringify(product.finalJson, null, 2)}
+                        {JSON.stringify(product.final_json, null, 2)}
                       </pre>
                     ) : (
                       <div className="text-center py-8">
@@ -247,9 +245,9 @@ export const ProductDetail: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quality Control Report</h3>
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
-                    {product.qcReport ? (
+                    {product.qc_report ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
-                        {JSON.stringify(product.qcReport, null, 2)}
+                        {JSON.stringify(product.qc_report, null, 2)}
                       </pre>
                     ) : (
                       <div className="text-center py-8">

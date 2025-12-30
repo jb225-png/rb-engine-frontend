@@ -4,7 +4,11 @@ import { Product, ProductDetail, PaginatedResponse, ProductsQueryParams } from '
 export const productsApi = {
   // Get paginated list of products
   getProducts: async (params: ProductsQueryParams = {}): Promise<PaginatedResponse<Product>> => {
-    const response = await apiClient.get('/products', { params });
+    const { page, limit, ...filters } = params;
+    const offset = page ? (page - 1) * (limit || 50) : 0;
+    const response = await apiClient.get('/products', { 
+      params: { ...filters, limit, offset } 
+    });
     return response.data;
   },
 
@@ -17,12 +21,6 @@ export const productsApi = {
   // Update product status
   updateProductStatus: async (id: string, status: Product['status']): Promise<Product> => {
     const response = await apiClient.patch(`/products/${id}/status`, { status });
-    return response.data.data;
-  },
-
-  // Create new product
-  createProduct: async (data: Partial<Product>): Promise<Product> => {
-    const response = await apiClient.post('/products', data);
     return response.data.data;
   },
 };

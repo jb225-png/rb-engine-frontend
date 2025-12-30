@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -16,18 +16,18 @@ import { GenerationJob } from '../types/api';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'generating', label: 'Generating' },
-  { value: 'success', label: 'Success' },
-  { value: 'error', label: 'Error' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'RUNNING', label: 'Running' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'FAILED', label: 'Failed' },
 ];
 
 const getStatusVariant = (status: GenerationJob['status']) => {
   switch (status) {
-    case 'success': return 'success';
-    case 'generating': return 'generating';
-    case 'pending': return 'pending';
-    case 'error': return 'error';
+    case 'COMPLETED': return 'success';
+    case 'RUNNING': return 'generating';
+    case 'PENDING': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
@@ -40,9 +40,8 @@ export const Jobs: React.FC = () => {
   const statusFilter = searchParams.get('status') || '';
 
   const { data, isLoading, error } = useGenerationJobsQuery({
-    page,
     limit: 20,
-    // TODO: Add status filtering when backend supports it
+    offset: (page - 1) * 20,
   });
 
   const updateSearchParams = (updates: Record<string, string>) => {
@@ -69,9 +68,10 @@ export const Jobs: React.FC = () => {
   };
 
   // Filter jobs client-side until backend supports filtering
-  const filteredJobs = data?.data.filter(job => 
+  const jobs = data && Array.isArray(data.data) ? data.data : [];
+  const filteredJobs = jobs.filter(job => 
     !statusFilter || job.status === statusFilter
-  ) || [];
+  );
 
   return (
     <PageContainer>
@@ -145,20 +145,20 @@ export const Jobs: React.FC = () => {
                         <span className="font-mono text-sm">#{job.id.slice(-8)}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">{job.standardCode}</span>
+                        <span className="font-medium">Standard #{job.standard_id}</span>
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={getStatusVariant(job.status)}>
                           {job.status}
                         </StatusBadge>
                       </TableCell>
-                      <TableCell>{job.productsCount || '—'}</TableCell>
+                      <TableCell>{job.total_products || '—'}</TableCell>
                       <TableCell>
-                        {new Date(job.createdAt).toLocaleDateString()}
+                        {new Date(job.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {job.completedAt 
-                          ? new Date(job.completedAt).toLocaleDateString()
+                        {job.updated_at 
+                          ? new Date(job.updated_at).toLocaleDateString()
                           : '—'
                         }
                       </TableCell>
@@ -167,7 +167,7 @@ export const Jobs: React.FC = () => {
                           <Button variant="outline" size="sm" disabled>
                             View
                           </Button>
-                          {job.status === 'error' && (
+                          {job.status === 'FAILED' && (
                             <Button variant="outline" size="sm" disabled>
                               Retry
                             </Button>

@@ -8,17 +8,17 @@ interface BaseButtonProps {
   size?: ButtonSize;
   loading?: boolean;
   fullWidth?: boolean;
-  children: React.ReactNode;
   className?: string;
 }
 
-interface ButtonAsButtonProps extends BaseButtonProps, React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonAsButtonProps extends BaseButtonProps, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
   as?: 'button';
 }
 
 interface ButtonAsLinkProps extends BaseButtonProps {
   as: any; // For React Router Link component
   to: string;
+  children: React.ReactNode;
 }
 
 type ButtonProps = ButtonAsButtonProps | ButtonAsLinkProps;

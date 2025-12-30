@@ -17,28 +17,24 @@ import { Product } from '../types/api';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'review', label: 'Review' },
-  { value: 'published', label: 'Published' },
-  { value: 'archived', label: 'Archived' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'GENERATED', label: 'Generated' },
+  { value: 'FAILED', label: 'Failed' },
 ];
 
 const typeOptions = [
   { value: '', label: 'All Types' },
-  { value: 'course', label: 'Course' },
-  { value: 'module', label: 'Module' },
-  { value: 'lesson', label: 'Lesson' },
-  { value: 'assessment', label: 'Assessment' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'resource', label: 'Resource' },
+  { value: 'WORKSHEET', label: 'Worksheet' },
+  { value: 'PASSAGE', label: 'Passage' },
+  { value: 'QUIZ', label: 'Quiz' },
+  { value: 'ASSESSMENT', label: 'Assessment' },
 ];
 
 const getStatusVariant = (status: Product['status']) => {
   switch (status) {
-    case 'published': return 'success';
-    case 'draft': return 'pending';
-    case 'review': return 'generating';
-    case 'archived': return 'error';
+    case 'GENERATED': return 'success';
+    case 'DRAFT': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
@@ -57,7 +53,7 @@ export const Products: React.FC = () => {
     page,
     limit: 20,
     status: statusFilter as Product['status'] || undefined,
-    type: typeFilter as Product['type'] || undefined,
+    product_type: typeFilter as Product['product_type'] || undefined,
     search: searchQuery || undefined,
   });
 
@@ -189,7 +185,7 @@ export const Products: React.FC = () => {
                           {product.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="capitalize">{product.type}</TableCell>
+                      <TableCell className="capitalize">{product.product_type}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <StatusBadge status={getStatusVariant(product.status)}>
@@ -198,19 +194,18 @@ export const Products: React.FC = () => {
                           <select
                             value={product.status}
                             onChange={(e) => handleStatusUpdate(product.id, e.target.value as Product['status'])}
-                            disabled={updateStatusMutation.isLoading}
+                            disabled={updateStatusMutation.isPending}
                             className="text-xs border border-neutral-300 rounded px-2 py-1 bg-white hover:border-neutral-400 focus:border-primary-500 focus:outline-none"
                           >
-                            <option value="draft">Draft</option>
-                            <option value="review">Review</option>
-                            <option value="published">Published</option>
-                            <option value="archived">Archived</option>
+                            <option value="DRAFT">Draft</option>
+                            <option value="GENERATED">Generated</option>
+                            <option value="FAILED">Failed</option>
                           </select>
                         </div>
                       </TableCell>
-                      <TableCell>{product.standardCode || '—'}</TableCell>
+                      <TableCell>{product.standard_id || '—'}</TableCell>
                       <TableCell>
-                        {new Date(product.createdAt).toLocaleDateString()}
+                        {new Date(product.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <Button 

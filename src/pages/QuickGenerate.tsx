@@ -16,33 +16,32 @@ import { useCreateGenerationJob, useGenerationJobsQuery } from '../hooks/useGene
 import { Product, GenerationJob } from '../types/api';
 
 interface FormData {
-  standardCode: string;
-  productType: Product['type'] | '';
-  description: string;
+  standard_id: number;
+  product_type: Product['product_type'];
+  grade_level: number;
+  locale: string;
+  curriculum_board: string;
 }
 
 interface FormErrors {
-  standardCode?: string;
-  productType?: string;
-  description?: string;
+  standard_id?: string;
+  product_type?: string;
+  grade_level?: string;
 }
 
 const productTypeOptions = [
-  { value: '', label: 'Auto-select best type' },
-  { value: 'course', label: 'Course' },
-  { value: 'module', label: 'Module' },
-  { value: 'lesson', label: 'Lesson' },
-  { value: 'assessment', label: 'Assessment' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'resource', label: 'Resource' },
+  { value: 'WORKSHEET', label: 'Worksheet' },
+  { value: 'PASSAGE', label: 'Passage' },
+  { value: 'QUIZ', label: 'Quiz' },
+  { value: 'ASSESSMENT', label: 'Assessment' },
 ];
 
 const getStatusVariant = (status: GenerationJob['status']) => {
   switch (status) {
-    case 'success': return 'success';
-    case 'generating': return 'generating';
-    case 'pending': return 'pending';
-    case 'error': return 'error';
+    case 'COMPLETED': return 'success';
+    case 'RUNNING': return 'generating';
+    case 'PENDING': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
@@ -50,9 +49,11 @@ const getStatusVariant = (status: GenerationJob['status']) => {
 export const QuickGenerate: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
-    standardCode: '',
-    productType: '',
-    description: '',
+    standard_id: 1,
+    product_type: 'WORKSHEET',
+    grade_level: 5,
+    locale: 'IN',
+    curriculum_board: 'CBSE',
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -79,14 +80,12 @@ export const QuickGenerate: React.FC = () => {
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
 
-    if (!formData.standardCode.trim()) {
-      errors.standardCode = 'Standard code is required';
-    } else if (formData.standardCode.trim().length < 3) {
-      errors.standardCode = 'Standard code must be at least 3 characters';
+    if (!formData.standard_id) {
+      errors.standard_id = 'Standard ID is required';
     }
 
-    if (formData.description.trim().length > 500) {
-      errors.description = 'Description must be less than 500 characters';
+    if (!formData.grade_level || formData.grade_level < 1 || formData.grade_level > 12) {
+      errors.grade_level = 'Grade level must be between 1 and 12';
     }
 
     setFormErrors(errors);
@@ -94,8 +93,8 @@ export const QuickGenerate: React.FC = () => {
   };
 
   const isFormValid = () => {
-    return formData.standardCode.trim().length >= 3 && 
-           formData.description.trim().length <= 500;
+    return formData.standard_id > 0 && 
+           formData.grade_level >= 1 && formData.grade_level <= 12;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,9 +106,11 @@ export const QuickGenerate: React.FC = () => {
 
     try {
       const result = await createJobMutation.mutateAsync({
-        standardCode: formData.standardCode.trim(),
-        productType: formData.productType || undefined,
-        description: formData.description.trim() || undefined,
+        standard_id: formData.standard_id,
+        product_type: formData.product_type,
+        grade_level: formData.grade_level,
+        locale: formData.locale,
+        curriculum_board: formData.curriculum_board,
       });
 
       setSuccessMessage(
@@ -119,26 +120,50 @@ export const QuickGenerate: React.FC = () => {
       
       // Reset form
       setFormData({
-        standardCode: '',
-        productType: '',
-        description: '',
+        standard_id: 1,
+        product_type: 'WORKSHEET',
+        grade_level: 5,
+        locale: 'IN',
+        curriculum_board: 'CBSE',
       });
       setFormErrors({});
 
     } catch (error: any) {
       console.error('Failed to create generation job:', error);
-      const errorMsg = error.response?.data?.error?.message || 
-                      error.response?.data?.message ||
-                      'Failed to create generation job. Please check your input and try again.';
+      console.error('Error response:', error.response);
+      
+      let errorMsg = 'Failed to create generation job. Please check your input and try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle FastAPI validation errors
+        if (Array.isArray(errorData.detail)) {
+          errorMsg = errorData.detail.map((err: any) => 
+            `${err.loc?.join('.')}: ${err.msg}`
+          ).join(', ');
+        } else if (typeof errorData.detail === 'string') {
+          errorMsg = errorData.detail;
+        } else if (errorData.message) {
+          errorMsg = errorData.message;
+        } else {
+          errorMsg = 'Validation error: ' + JSON.stringify(errorData);
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
       setErrorMessage(errorMsg);
     }
   };
 
   const handleReset = () => {
     setFormData({
-      standardCode: '',
-      productType: '',
-      description: '',
+      standard_id: 1,
+      product_type: 'WORKSHEET',
+      grade_level: 5,
+      locale: 'IN',
+      curriculum_board: 'CBSE',
     });
     setFormErrors({});
     setErrorMessage('');
@@ -177,19 +202,20 @@ export const QuickGenerate: React.FC = () => {
                 description="Enter the educational standard code to generate content for"
               >
                 <Input
-                  label="Standard Code"
-                  value={formData.standardCode}
+                  label="Standard ID"
+                  type="number"
+                  value={formData.standard_id.toString()}
                   onChange={(e) => {
-                    setFormData(prev => ({ ...prev, standardCode: e.target.value }));
-                    if (formErrors.standardCode) {
-                      setFormErrors(prev => ({ ...prev, standardCode: undefined }));
+                    setFormData(prev => ({ ...prev, standard_id: parseInt(e.target.value) || 1 }));
+                    if (formErrors.standard_id) {
+                      setFormErrors(prev => ({ ...prev, standard_id: undefined }));
                     }
                   }}
-                  placeholder="e.g., CCSS.MATH.CONTENT.3.OA.A.1"
-                  helperText="Enter a valid educational standard identifier (minimum 3 characters)"
-                  error={formErrors.standardCode}
+                  placeholder="1"
+                  helperText="Enter a valid standard ID from the database"
+                  error={formErrors.standard_id}
                   required
-                  disabled={createJobMutation.isLoading}
+                  disabled={createJobMutation.isPending}
                 />
               </FormSection>
 
@@ -202,25 +228,28 @@ export const QuickGenerate: React.FC = () => {
                   <Select
                     label="Product Type"
                     options={productTypeOptions}
-                    value={formData.productType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, productType: e.target.value as Product['type'] || '' }))}
-                    helperText="Leave blank to let AI choose the best product type for your standard"
-                    disabled={createJobMutation.isLoading}
+                    value={formData.product_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, product_type: e.target.value as Product['product_type'] }))}
+                    helperText="Select the type of content to generate"
+                    disabled={createJobMutation.isPending}
                   />
                   
                   <Input
-                    label="Additional Description"
-                    value={formData.description}
+                    label="Grade Level"
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={formData.grade_level.toString()}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, description: e.target.value }));
-                      if (formErrors.description) {
-                        setFormErrors(prev => ({ ...prev, description: undefined }));
+                      setFormData(prev => ({ ...prev, grade_level: parseInt(e.target.value) || 5 }));
+                      if (formErrors.grade_level) {
+                        setFormErrors(prev => ({ ...prev, grade_level: undefined }));
                       }
                     }}
-                    placeholder="Any specific requirements, grade level, or context..."
-                    helperText={`Optional: Provide additional context to improve generation quality (${formData.description.length}/500 characters)`}
-                    error={formErrors.description}
-                    disabled={createJobMutation.isLoading}
+                    placeholder="5"
+                    helperText="Grade level from 1 to 12"
+                    error={formErrors.grade_level}
+                    disabled={createJobMutation.isPending}
                   />
                 </div>
               </FormSection>
@@ -230,23 +259,23 @@ export const QuickGenerate: React.FC = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  loading={createJobMutation.isLoading}
-                  disabled={!isFormValid() || createJobMutation.isLoading}
+                  loading={createJobMutation.isPending}
+                  disabled={!isFormValid() || createJobMutation.isPending}
                   className="min-w-[140px]"
                 >
-                  {createJobMutation.isLoading ? 'Creating...' : 'Generate Product'}
+                  {createJobMutation.isPending ? 'Creating...' : 'Generate Product'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleReset}
-                  disabled={createJobMutation.isLoading}
+                  disabled={createJobMutation.isPending}
                 >
                   Reset Form
                 </Button>
-                {!isFormValid() && formData.standardCode.trim().length > 0 && (
+                {!isFormValid() && formData.standard_id > 0 && (
                   <p className="text-sm text-neutral-500 self-center ml-2">
-                    {formData.standardCode.trim().length < 3 ? 'Standard code too short' : 'Check form errors'}
+                    {formData.grade_level < 1 || formData.grade_level > 12 ? 'Invalid grade level' : 'Check form errors'}
                   </p>
                 )}
               </div>
@@ -270,7 +299,7 @@ export const QuickGenerate: React.FC = () => {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-neutral-900 truncate">
-                          {job.standardCode}
+                          Standard #{job.standard_id}
                         </p>
                         <p className="text-xs text-neutral-500 mt-1">
                           Job #{job.id.slice(-8)}
@@ -280,13 +309,13 @@ export const QuickGenerate: React.FC = () => {
                         {job.status}
                       </StatusBadge>
                     </div>
-                    {job.productsCount && (
+                    {job.total_products && (
                       <p className="text-xs text-neutral-600 mb-2">
-                        {job.productsCount} product{job.productsCount !== 1 ? 's' : ''} generated
+                        {job.total_products} product{job.total_products !== 1 ? 's' : ''} total
                       </p>
                     )}
                     <p className="text-xs text-neutral-400">
-                      {new Date(job.createdAt).toLocaleDateString()}
+                      {new Date(job.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 ))}
@@ -338,21 +367,21 @@ export const QuickGenerate: React.FC = () => {
                     <span className="font-mono text-sm">#{job.id.slice(-8)}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="font-medium">{job.standardCode}</span>
+                    <span className="font-medium">Standard #{job.standard_id}</span>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={getStatusVariant(job.status)}>
                       {job.status}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell>{job.productsCount || '—'}</TableCell>
-                  <TableCell>{new Date(job.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{job.total_products || '—'}</TableCell>
+                  <TableCell>{new Date(job.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" disabled>
                         View
                       </Button>
-                      {job.status === 'error' && (
+                      {job.status === 'FAILED' && (
                         <Button variant="outline" size="sm" disabled>
                           Retry
                         </Button>

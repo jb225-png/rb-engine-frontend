@@ -8,32 +8,30 @@ import { Section } from '../components/ui/Section';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { useDashboardMetrics, useRecentProducts, useRecentJobs } from '../hooks/useDashboard';
+import { useDashboardStats, useRecentProducts, useRecentJobs } from '../hooks/useDashboard';
 import { Product, GenerationJob } from '../types/api';
 
 const getProductStatusVariant = (status: Product['status']) => {
   switch (status) {
-    case 'published': return 'success';
-    case 'draft': return 'pending';
-    case 'review': return 'generating';
-    case 'archived': return 'error';
+    case 'GENERATED': return 'success';
+    case 'DRAFT': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
 
 const getJobStatusVariant = (status: GenerationJob['status']) => {
   switch (status) {
-    case 'success': return 'success';
-    case 'generating': return 'generating';
-    case 'pending': return 'pending';
-    case 'error': return 'error';
+    case 'COMPLETED': return 'success';
+    case 'RUNNING': return 'generating';
+    case 'PENDING': return 'pending';
+    case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
 
 export const Dashboard: React.FC = () => {
-  const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
+  const { data: metrics, isLoading: metricsLoading } = useDashboardStats();
   const { data: recentProducts, isLoading: productsLoading } = useRecentProducts(5);
   const { data: recentJobs, isLoading: jobsLoading } = useRecentJobs(5);
 
@@ -52,7 +50,7 @@ export const Dashboard: React.FC = () => {
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-primary-600">{metrics?.totalProducts || 0}</p>
+              <p className="text-3xl font-bold text-primary-600">{metrics?.total_products || 0}</p>
               <p className="text-sm text-neutral-500 mt-1">Curriculum products</p>
             </>
           )}
@@ -64,7 +62,7 @@ export const Dashboard: React.FC = () => {
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-success-500">{metrics?.totalGenerationJobs || 0}</p>
+              <p className="text-3xl font-bold text-success-500">{metrics?.total_generation_jobs || 0}</p>
               <p className="text-sm text-neutral-500 mt-1">Total jobs created</p>
             </>
           )}
@@ -76,20 +74,20 @@ export const Dashboard: React.FC = () => {
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-success-500">{metrics?.productsByStatus.published || 0}</p>
+              <p className="text-3xl font-bold text-success-500">{metrics?.products_by_status.GENERATED || 0}</p>
               <p className="text-sm text-neutral-500 mt-1">Ready products</p>
             </>
           )}
         </Card>
         
         <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">In Review</h3>
+          <h3 className="text-sm font-medium text-neutral-500 mb-2">In Draft</h3>
           {metricsLoading ? (
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-warning-500">{metrics?.productsByStatus.review || 0}</p>
-              <p className="text-sm text-neutral-500 mt-1">Pending review</p>
+              <p className="text-3xl font-bold text-warning-500">{metrics?.products_by_status.DRAFT || 0}</p>
+              <p className="text-sm text-neutral-500 mt-1">Pending generation</p>
             </>
           )}
         </Card>
@@ -121,7 +119,7 @@ export const Dashboard: React.FC = () => {
                     >
                       {product.name}
                     </Link>
-                    <p className="text-sm text-neutral-500 capitalize">{product.type}</p>
+                    <p className="text-sm text-neutral-500 capitalize">{product.product_type}</p>
                   </div>
                   <StatusBadge status={getProductStatusVariant(product.status)}>
                     {product.status}
@@ -156,15 +154,15 @@ export const Dashboard: React.FC = () => {
               {recentJobs.map((job) => (
                 <div key={job.id} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-neutral-900 truncate">{job.standardCode}</p>
+                    <p className="font-medium text-neutral-900 truncate">Standard #{job.standard_id}</p>
                     <p className="text-sm text-neutral-500">Job #{job.id.slice(-8)}</p>
                   </div>
                   <div className="text-right">
                     <StatusBadge status={getJobStatusVariant(job.status)}>
                       {job.status}
                     </StatusBadge>
-                    {job.productsCount && (
-                      <p className="text-xs text-neutral-500 mt-1">{job.productsCount} products</p>
+                    {job.total_products && (
+                      <p className="text-xs text-neutral-500 mt-1">{job.total_products} products</p>
                     )}
                   </div>
                 </div>
