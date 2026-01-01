@@ -48,6 +48,7 @@ export const Products: React.FC = () => {
   const statusFilter = searchParams.get('status') || '';
   const typeFilter = searchParams.get('type') || '';
   const searchQuery = searchParams.get('search') || '';
+  const generationJobId = searchParams.get('generation_job_id') || '';
 
   const { data, isLoading, error } = useProductsQuery({
     page,
@@ -55,6 +56,7 @@ export const Products: React.FC = () => {
     status: statusFilter as Product['status'] || undefined,
     product_type: typeFilter as Product['product_type'] || undefined,
     search: searchQuery || undefined,
+    generation_job_id: generationJobId || undefined,
   });
 
   const updateStatusMutation = useUpdateProductStatus();
@@ -99,6 +101,14 @@ export const Products: React.FC = () => {
     }
   };
 
+  const clearJobFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('generation_job_id');
+    setSearchParams(newParams);
+  };
+
+  const hasActiveFilters = statusFilter || typeFilter || searchQuery || generationJobId;
+
   return (
     <PageContainer>
       <PageHeader
@@ -109,6 +119,20 @@ export const Products: React.FC = () => {
 
       {successMessage && (
         <Alert variant="success" title="Success" description={successMessage} />
+      )}
+
+      {/* Generation Job Filter Banner */}
+      {generationJobId && (
+        <Alert
+          variant="info"
+          title="Filtered by Generation Job"
+          description={`Showing products for generation job #${generationJobId.slice(-8)}. This view shows only products created by this specific job.`}
+          action={
+            <Button variant="outline" size="sm" onClick={clearJobFilter}>
+              Clear Job Filter
+            </Button>
+          }
+        />
       )}
 
       <Card>
@@ -134,9 +158,9 @@ export const Products: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => setSearchParams({})}
-            disabled={!statusFilter && !typeFilter && !searchQuery}
+            disabled={!hasActiveFilters}
           >
-            Clear Filters
+            Clear All Filters
           </Button>
         </div>
 
@@ -169,6 +193,7 @@ export const Products: React.FC = () => {
                   <TableHeader>Type</TableHeader>
                   <TableHeader>Status</TableHeader>
                   <TableHeader>Standard</TableHeader>
+                  <TableHeader>Job ID</TableHeader>
                   <TableHeader>Created</TableHeader>
                   <TableHeader>Actions</TableHeader>
                 </TableRow>
@@ -205,6 +230,15 @@ export const Products: React.FC = () => {
                       </TableCell>
                       <TableCell>{product.standard_id || '—'}</TableCell>
                       <TableCell>
+                        {product.generation_job_id ? (
+                          <span className="font-mono text-xs text-neutral-600">
+                            #{product.generation_job_id.slice(-8)}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {new Date(product.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
@@ -222,15 +256,25 @@ export const Products: React.FC = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <EmptyState
                         title="No products found"
                         description={
-                          statusFilter || typeFilter || searchQuery
+                          generationJobId
+                            ? `No products found for generation job #${generationJobId.slice(-8)}. The job may still be processing or may have failed.`
+                            : hasActiveFilters
                             ? "No products match your current filters. Try adjusting your search criteria."
                             : "No products have been created yet. Create your first product to get started."
                         }
-                        action={<Button variant="primary">Create New Product</Button>}
+                        action={
+                          generationJobId ? (
+                            <Button variant="outline" onClick={clearJobFilter}>
+                              Clear Job Filter
+                            </Button>
+                          ) : (
+                            <Button variant="primary">Create New Product</Button>
+                          )
+                        }
                       />
                     </TableCell>
                   </TableRow>

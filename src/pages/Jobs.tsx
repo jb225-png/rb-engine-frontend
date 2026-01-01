@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -34,12 +34,13 @@ const getStatusVariant = (status: GenerationJob['status']) => {
 
 export const Jobs: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Get filters from URL params
   const page = parseInt(searchParams.get('page') || '1');
   const statusFilter = searchParams.get('status') || '';
 
-  const { data, isLoading, error } = useGenerationJobsQuery({
+  const { data, isLoading, error, refetch } = useGenerationJobsQuery({
     limit: 20,
     offset: (page - 1) * 20,
   });
@@ -67,6 +68,10 @@ export const Jobs: React.FC = () => {
     updateSearchParams({ page: newPage.toString() });
   };
 
+  const handleViewProducts = (jobId: string) => {
+    navigate(`/products?generation_job_id=${jobId}`);
+  };
+
   // Filter jobs client-side until backend supports filtering
   const jobs = data && Array.isArray(data.data) ? data.data : [];
   const filteredJobs = jobs.filter(job => 
@@ -79,7 +84,7 @@ export const Jobs: React.FC = () => {
         title="Generation Jobs"
         description="Monitor and manage content generation jobs"
         actions={
-          <Button variant="primary" onClick={() => window.location.href = '/quick-generate'}>
+          <Button variant="primary" onClick={() => navigate('/quick-generate')}>
             Create New Job
           </Button>
         }
@@ -100,6 +105,14 @@ export const Jobs: React.FC = () => {
             disabled={!statusFilter}
           >
             Clear Filters
+          </Button>
+          <div></div>
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            {isLoading ? <Spinner size="sm" /> : 'Refresh'}
           </Button>
         </div>
 
@@ -164,8 +177,12 @@ export const Jobs: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" disabled>
-                            View
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewProducts(job.id)}
+                          >
+                            View Products
                           </Button>
                           {job.status === 'FAILED' && (
                             <Button variant="outline" size="sm" disabled>
@@ -189,7 +206,7 @@ export const Jobs: React.FC = () => {
                         action={
                           <Button 
                             variant="primary" 
-                            onClick={() => window.location.href = '/quick-generate'}
+                            onClick={() => navigate('/quick-generate')}
                           >
                             Create New Job
                           </Button>

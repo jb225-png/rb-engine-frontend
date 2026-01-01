@@ -22,11 +22,11 @@ export const useGenerationJobsQuery = (params: { limit?: number; offset?: number
 };
 
 // Get single generation job
-export const useGenerationJobQuery = (id: string) => {
+export const useGenerationJobQuery = (id: string, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: generationKeys.detail(id),
     queryFn: () => generationApi.getGenerationJob(id),
-    enabled: !!id,
+    enabled: options?.enabled ?? !!id,
     retry: false,
   });
 };

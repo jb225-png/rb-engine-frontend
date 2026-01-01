@@ -71,6 +71,16 @@ export const ProductDetail: React.FC = () => {
     }
   };
 
+  const handleViewJob = () => {
+    if (product?.generation_job_id) {
+      navigate(`/products?generation_job_id=${product.generation_job_id}`);
+    }
+  };
+
+  const handleViewAllJobs = () => {
+    navigate('/jobs');
+  };
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -119,6 +129,25 @@ export const ProductDetail: React.FC = () => {
 
       {successMessage && (
         <Alert variant="success" title="Success" description={successMessage} />
+      )}
+
+      {/* Generation Job Context Banner */}
+      {product.generation_job_id && (
+        <Alert
+          variant="info"
+          title="Generation Job Context"
+          description={`This product was created by generation job #${product.generation_job_id.slice(-8)}. View related products or job details.`}
+          action={
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleViewJob}>
+                View Job Products
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleViewAllJobs}>
+                View All Jobs
+              </Button>
+            </div>
+          }
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -170,9 +199,18 @@ export const ProductDetail: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Generation Job</p>
-                <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
-                  {product.generation_job_id ? `#${product.generation_job_id.slice(-8)}` : '—'}
-                </p>
+                {product.generation_job_id ? (
+                  <button
+                    onClick={handleViewJob}
+                    className="text-xs font-mono text-primary-600 bg-primary-50 px-2 py-1 rounded hover:bg-primary-100 transition-colors"
+                  >
+                    #{product.generation_job_id.slice(-8)}
+                  </button>
+                ) : (
+                  <p className="text-xs font-mono text-neutral-900 bg-neutral-50 px-2 py-1 rounded">
+                    —
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500 mb-1">Created Date</p>
@@ -208,6 +246,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'raw' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Raw JSON Data</h3>
+                  {/* TODO: Add AI output rendering when available */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.raw_json ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
@@ -226,6 +265,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'final' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Final JSON Data</h3>
+                  {/* TODO: Add processed content rendering when available */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.final_json ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
@@ -244,6 +284,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'qc' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Quality Control Report</h3>
+                  {/* TODO: Add QC report viewer when available */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.qc_report ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
@@ -262,6 +303,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'metadata' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Product Metadata</h3>
+                  {/* TODO: Add structured metadata viewer when available */}
                   <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 max-h-96 overflow-auto">
                     {product.metadata ? (
                       <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono">
@@ -280,6 +322,7 @@ export const ProductDetail: React.FC = () => {
               {activeTab === 'files' && (
                 <div>
                   <h3 className="text-lg font-semibold text-neutral-900 mb-4">Generated Files</h3>
+                  {/* TODO: Add file preview and download functionality when available */}
                   <div className="space-y-3">
                     {product.files && product.files.length > 0 ? (
                       product.files.map((file, index) => (
@@ -322,6 +365,24 @@ export const ProductDetail: React.FC = () => {
               </Button>
             </div>
             
+            {/* Generation Job Context */}
+            {product.generation_job_id && (
+              <div className="mt-6 pt-4 border-t border-neutral-200">
+                <h4 className="text-sm font-medium text-neutral-900 mb-3">Generation Job</h4>
+                <div className="space-y-2">
+                  <Button variant="outline" size="sm" fullWidth onClick={handleViewJob}>
+                    View Job Products
+                  </Button>
+                  <Button variant="outline" size="sm" fullWidth onClick={handleViewAllJobs}>
+                    View All Jobs
+                  </Button>
+                </div>
+                <p className="text-xs text-neutral-500 mt-2">
+                  Job ID: #{product.generation_job_id.slice(-8)}
+                </p>
+              </div>
+            )}
+            
             <div className="mt-6 pt-4 border-t border-neutral-200">
               <p className="text-sm text-neutral-500 mb-3">Coming Soon</p>
               <div className="space-y-2 text-xs text-neutral-400">
@@ -329,6 +390,8 @@ export const ProductDetail: React.FC = () => {
                 <p>• Product duplication</p>
                 <p>• Bulk export options</p>
                 <p>• Version history</p>
+                <p>• AI output rendering</p>
+                <p>• QC workflow automation</p>
               </div>
             </div>
           </Card>

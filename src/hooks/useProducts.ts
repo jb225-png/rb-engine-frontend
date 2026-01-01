@@ -12,12 +12,13 @@ export const productKeys = {
 };
 
 // Get products list with pagination and filtering
-export const useProductsQuery = (params: ProductsQueryParams = {}) => {
+export const useProductsQuery = (params: ProductsQueryParams = {}, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: productKeys.list(params),
     queryFn: () => productsApi.getProducts(params),
     placeholderData: (previousData) => previousData, // Keep previous data while loading new page
     retry: false,
+    enabled: options?.enabled,
   });
 };
 

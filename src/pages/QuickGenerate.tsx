@@ -12,7 +12,8 @@ import { Alert } from '../components/ui/Alert';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { useCreateGenerationJob, useGenerationJobsQuery } from '../hooks/useGeneration';
+import { useCreateGenerationJob, useGenerationJobsQuery, useGenerationJobQuery } from '../hooks/useGeneration';
+import { useProductsQuery } from '../hooks/useProducts';
 import { Product, GenerationJob } from '../types/api';
 
 interface FormData {
@@ -46,6 +47,15 @@ const getStatusVariant = (status: GenerationJob['status']) => {
   }
 };
 
+const getProductStatusVariant = (status: Product['status']) => {
+  switch (status) {
+    case 'GENERATED': return 'success';
+    case 'DRAFT': return 'pending';
+    case 'FAILED': return 'error';
+    default: return 'pending';
+  }
+};
+
 export const QuickGenerate: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
@@ -58,9 +68,25 @@ export const QuickGenerate: React.FC = () => {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [lastCreatedJobId, setLastCreatedJobId] = useState<string | null>(null);
 
   const createJobMutation = useCreateGenerationJob();
-  const { data: recentJobs, isLoading: jobsLoading } = useGenerationJobsQuery({ limit: 5 });
+  const { data: recentJobs, isLoading: jobsLoading, refetch: refetchJobs } = useGenerationJobsQuery({ limit: 10 });
+  
+  // Get detailed job info for the last created job
+  const { data: lastCreatedJob, isLoading: jobDetailLoading, refetch: refetchJobDetail } = useGenerationJobQuery(
+    lastCreatedJobId || '', 
+    { enabled: !!lastCreatedJobId }
+  );
+  
+  // Get products for the last created job
+  const { data: jobProducts, isLoading: productsLoading, refetch: refetchProducts } = useProductsQuery(
+    { 
+      generation_job_id: lastCreatedJobId || undefined,
+      limit: 10 
+    },
+    { enabled: !!lastCreatedJobId }
+  );
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -113,6 +139,9 @@ export const QuickGenerate: React.FC = () => {
         curriculum_board: formData.curriculum_board,
       });
 
+      // Set the created job ID for detailed tracking
+      setLastCreatedJobId(result.id);
+      
       setSuccessMessage(
         `Generation job created successfully! Job ID: ${result.id}. ` +
         `The system will process your request and create the content.`
@@ -168,6 +197,21 @@ export const QuickGenerate: React.FC = () => {
     setFormErrors({});
     setErrorMessage('');
     setSuccessMessage('');
+    setLastCreatedJobId(null);
+  };
+
+  const handleViewProducts = (jobId: string) => {
+    navigate(`/products?generation_job_id=${jobId}`);
+  };
+
+  const handleRefreshJobStatus = async () => {
+    if (lastCreatedJobId) {
+      await Promise.all([
+        refetchJobDetail(),
+        refetchProducts(),
+        refetchJobs()
+      ]);
+    }
   };
 
   return (
@@ -281,6 +325,142 @@ export const QuickGenerate: React.FC = () => {
               </div>
             </form>
           </Card>
+
+          {/* Enhanced Job Status Panel */}
+          {lastCreatedJob && (
+            <Card>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-neutral-900">Job Status</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefreshJobStatus}
+                  disabled={jobDetailLoading || productsLoading}
+                >
+                  {(jobDetailLoading || productsLoading) ? <Spinner size="sm" /> : 'Refresh Status'}
+                </Button>
+              </div>
+              
+              <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Job ID</p>
+                    <p className="text-sm font-mono text-neutral-900">#{lastCreatedJob.id.slice(-8)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Status</p>
+                    <StatusBadge status={getStatusVariant(lastCreatedJob.status)}>
+                      {lastCreatedJob.status}
+                    </StatusBadge>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Created</p>
+                    <p className="text-sm text-neutral-900">
+                      {new Date(lastCreatedJob.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Progress Information */}
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-neutral-200">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Total Products</p>
+                    <p className="text-lg font-semibold text-neutral-900">
+                      {lastCreatedJob.total_products || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Completed</p>
+                    <p className="text-lg font-semibold text-success-600">
+                      {lastCreatedJob.completed_products || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-500">Failed</p>
+                    <p className="text-lg font-semibold text-error-600">
+                      {lastCreatedJob.failed_products || 0}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-neutral-200">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewProducts(lastCreatedJob.id)}
+                    >
+                      View Products
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/jobs`)}
+                    >
+                      View All Jobs
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Job Products Table */}
+              <div>
+                <h4 className="text-md font-medium text-neutral-900 mb-3">Job Products</h4>
+                {productsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Spinner size="md" />
+                  </div>
+                ) : jobProducts?.data.length ? (
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableHeader>Product Type</TableHeader>
+                        <TableHeader>Status</TableHeader>
+                        <TableHeader>Created</TableHeader>
+                        <TableHeader>Actions</TableHeader>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {jobProducts.data.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="capitalize">
+                            {product.product_type}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={getProductStatusVariant(product.status)}>
+                              {product.status}
+                            </StatusBadge>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(product.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate(`/products/${product.id}`)}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <EmptyState
+                    title="No products yet"
+                    description="Products will appear here as the job processes. Try refreshing the status."
+                    action={
+                      <Button variant="outline" size="sm" onClick={handleRefreshJobStatus}>
+                        Refresh Status
+                      </Button>
+                    }
+                  />
+                )}
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Recent Jobs Sidebar */}
@@ -294,8 +474,12 @@ export const QuickGenerate: React.FC = () => {
               </div>
             ) : recentJobs?.data.length ? (
               <div className="space-y-3">
-                {recentJobs.data.map((job) => (
-                  <div key={job.id} className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors">
+                {recentJobs.data.slice(0, 5).map((job) => (
+                  <div 
+                    key={job.id} 
+                    className="p-4 border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors cursor-pointer"
+                    onClick={() => handleViewProducts(job.id)}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-neutral-900 truncate">
@@ -311,7 +495,7 @@ export const QuickGenerate: React.FC = () => {
                     </div>
                     {job.total_products && (
                       <p className="text-xs text-neutral-600 mb-2">
-                        {job.total_products} product{job.total_products !== 1 ? 's' : ''} total
+                        {job.completed_products || 0}/{job.total_products} completed
                       </p>
                     )}
                     <p className="text-xs text-neutral-400">
@@ -340,9 +524,19 @@ export const QuickGenerate: React.FC = () => {
         </div>
       </div>
 
-      {/* Full History Table */}
+      {/* Generation History Table */}
       <Card>
-        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Recent Generation History</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-neutral-900">Recent Generation History</h3>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetchJobs()}
+            disabled={jobsLoading}
+          >
+            {jobsLoading ? <Spinner size="sm" /> : 'Refresh'}
+          </Button>
+        </div>
         
         {jobsLoading ? (
           <div className="flex justify-center py-8">
@@ -355,7 +549,7 @@ export const QuickGenerate: React.FC = () => {
                 <TableHeader>Job ID</TableHeader>
                 <TableHeader>Standard</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Products</TableHeader>
+                <TableHeader>Progress</TableHeader>
                 <TableHeader>Created At</TableHeader>
                 <TableHeader>Actions</TableHeader>
               </TableRow>
@@ -374,12 +568,24 @@ export const QuickGenerate: React.FC = () => {
                       {job.status}
                     </StatusBadge>
                   </TableCell>
-                  <TableCell>{job.total_products || '—'}</TableCell>
+                  <TableCell>
+                    {job.total_products ? (
+                      <span className="text-sm text-neutral-600">
+                        {job.completed_products || 0}/{job.total_products}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
                   <TableCell>{new Date(job.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" disabled>
-                        View
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewProducts(job.id)}
+                      >
+                        View Products
                       </Button>
                       {job.status === 'FAILED' && (
                         <Button variant="outline" size="sm" disabled>
