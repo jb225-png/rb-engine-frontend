@@ -15,7 +15,7 @@ export const generationApi = {
       // Create a GenerationJob object from the response
       return {
         id: response.data.data.job_id.toString(),
-        standard_id: data.standard_id,
+        standard_id: data.standard_id || 1,
         status: 'PENDING', // New jobs start as PENDING
         total_products: response.data.data.product_ids?.length || 1,
         completed_products: 0,

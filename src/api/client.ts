@@ -12,42 +12,118 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor - add auth tokens, logging, etc.
+// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('API Request:', {
-      method: config.method,
-      url: config.url,
-      baseURL: config.baseURL,
-      data: config.data,
-      params: config.params
-    });
-    
-    // TODO: Add authentication token when auth is implemented
-    // const token = localStorage.getItem('authToken');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor
+apiClient.interceptors.response.use(
+  (response) => response,
   (error) => {
+    console.error('API Error:', error.response?.data?.detail || error.message);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - handle errors globally
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
+// API Types
+export interface GenerateProductRequest {
+  standard_id: number;
+  product_type: 'WORKSHEET' | 'QUIZ' | 'PASSAGE' | 'ASSESSMENT';
+  locale?: 'IN' | 'US';
+  curriculum_board?: 'CBSE' | 'COMMON_CORE';
+  grade_level: number;
+}
+
+export interface GenerateProductResponse {
+  job_id: number;
+  product_ids: number[];
+  message: string;
+}
+
+export interface Product {
+  id: number;
+  standard_id: number;
+  generation_job_id: number;
+  product_type: string;
+  status: 'DRAFT' | 'GENERATED' | 'FAILED';
+  locale: string;
+  curriculum_board: string;
+  grade_level: number;
+  created_at: string;
+}
+
+export interface GenerationJob {
+  id: number;
+  standard_id: number;
+  locale: string;
+  curriculum_board: string;
+  grade_level: number;
+  job_type: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  total_products: number;
+  completed_products: number;
+  failed_products: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// API Functions
+export const api = {
+  // Generate product
+  generateProduct: async (data: GenerateProductRequest): Promise<GenerateProductResponse> => {
+    const response = await apiClient.post('/generate-product', data);
+    return response.data;
   },
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    
-    if (error.response?.status === 401) {
-      // TODO: Handle unauthorized - redirect to login
-      console.warn('Unauthorized request');
-    }
-    
-    return Promise.reject(error);
+
+  // Get products
+  getProducts: async (params?: {
+    status?: string;
+    product_type?: string;
+    curriculum_board?: string;
+    grade_level?: number;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const response = await apiClient.get('/products', { params });
+    return response.data;
+  },
+
+  // Get specific product
+  getProduct: async (id: number) => {
+    const response = await apiClient.get(`/products/${id}`);
+    return response.data;
+  },
+
+  // Get product content
+  getProductContent: async (id: number) => {
+    const response = await apiClient.get(`/products/${id}/content`);
+    return response.data;
+  },
+
+  // Get generation jobs
+  getGenerationJobs: async (params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const response = await apiClient.get('/v1/generation-jobs', { params });
+    return response.data;
+  },
+
+  // Get specific job
+  getGenerationJob: async (id: number) => {
+    const response = await apiClient.get(`/v1/generation-jobs/${id}`);
+    return response.data;
+  },
+
+  // Health check
+  healthCheck: async () => {
+    const response = await apiClient.get('/health');
+    return response.data;
   }
-);
+};

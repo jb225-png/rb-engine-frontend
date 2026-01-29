@@ -2,7 +2,7 @@
 export interface Product {
   id: string;
   name: string;
-  product_type: 'WORKSHEET' | 'PASSAGE' | 'QUIZ' | 'ASSESSMENT';
+  product_type: 'WORKSHEET' | 'PASSAGE' | 'QUIZ' | 'ASSESSMENT' | 'FLASHCARDS' | 'LESSON_PLAN' | 'RUBRIC' | 'PROJECT' | 'PRESENTATION' | 'ACTIVITY' | 'GAME' | 'SIMULATION';
   status: 'DRAFT' | 'GENERATED' | 'FAILED';
   standard_id?: number;
   generation_job_id?: string;
@@ -15,11 +15,33 @@ export interface Product {
 
 export interface ProductDetail extends Product {
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    title?: string;
+    description?: string;
+    tags?: string[];
+    price?: number;
+    currency?: string;
+    [key: string]: any;
+  };
   raw_json?: Record<string, any>;
   final_json?: Record<string, any>;
-  qc_report?: Record<string, any>;
+  qc_report?: {
+    verdict?: 'PASS' | 'NEEDS_FIX' | 'FAIL';
+    score?: number;
+    issues?: string[];
+    [key: string]: any;
+  };
   files?: string[];
+}
+
+// Standard types
+export interface Standard {
+  id: number;
+  code: string;
+  description?: string;
+  grade_level?: number;
+  curriculum_board?: string;
+  locale?: string;
 }
 
 // Generation Job types

@@ -51,3 +51,24 @@ export const useUpdateProductStatus = () => {
     },
   });
 };
+
+// Download product mutation
+export const useDownloadProduct = () => {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const blob = await productsApi.downloadProduct(id);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `product-${id}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return true;
+    },
+  });
+};

@@ -23,4 +23,12 @@ export const productsApi = {
     const response = await apiClient.patch(`/products/${id}/status`, { status });
     return response.data.data;
   },
+
+  // Download product ZIP
+  downloadProduct: async (id: string): Promise<Blob> => {
+    const response = await apiClient.get(`/products/${id}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
