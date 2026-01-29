@@ -3,11 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/products', label: 'Products', icon: '📦' },
-  { path: '/quick-generate', label: 'Quick Generate', icon: '⚡' },
+  { path: '/products', label: 'Templates', icon: '📝' },
+  { path: '/quick-generate', label: 'Generate Template', icon: '⚡' },
   { path: '/jobs', label: 'Generation Jobs', icon: '🔄' },
-  { path: '/upload-queue', label: 'Upload Queue', icon: '📤' },
-  { path: '/bundles', label: 'Bundles', icon: '📚' },
 ];
 
 export const Sidebar: React.FC = () => {

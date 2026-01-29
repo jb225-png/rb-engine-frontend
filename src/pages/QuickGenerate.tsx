@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -7,77 +7,63 @@ import { Checkbox } from '../components/ui/Checkbox';
 import { FormSection } from '../components/ui/FormSection';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
-import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Locale, Curriculum, DEFAULT_LOCALE, LOCALE_CONFIGS, CURRICULUM_LABELS } from '../config/locales';
-import { getDefaultCurriculum, getSupportedCurricula, getGradeRangesForCurriculum } from '../utils/locale';
-import { api, GenerateProductRequest } from '../api/client';
+import { generationApi } from '../api/generation';
+import { useStandards } from '../hooks/useStandards';
+import { TemplateType, ELAStandardType, GradeLevel, WorldviewFlag, GenerateTemplateRequest } from '../types/api';
 
 interface FormData {
-  locale: Locale;
-  curriculum: Curriculum;
-  grade: string;
-  standardCode: string;
-  fullBundle: boolean;
-  selectedProducts: string[];
+  grade_level: GradeLevel;
+  ela_standard_type: ELAStandardType;
+  ela_standard_code: string;
+  template_type: TemplateType;
+  worldview_flag: WorldviewFlag;
+  standard_id: number | null;
 }
 
-const productOptions = [
-  { value: 'course', label: 'Course' },
-  { value: 'module', label: 'Module' },
-  { value: 'lesson', label: 'Lesson' },
-  { value: 'assessment', label: 'Assessment' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'resource', label: 'Resource' },
+const templateOptions: { value: TemplateType; label: string; description: string }[] = [
+  { value: 'BUNDLE_OVERVIEW', label: 'Bundle Overview', description: 'Complete curriculum package overview' },
+  { value: 'VOCABULARY_PACK', label: 'Vocabulary Pack', description: 'Key terms and definitions' },
+  { value: 'ANCHOR_READING_PASSAGE', label: 'Anchor Reading Passage', description: 'Core reading text with analysis' },
+  { value: 'READING_COMPREHENSION_QUESTIONS', label: 'Reading Comprehension', description: 'Questions to test understanding' },
+  { value: 'SHORT_QUIZ', label: 'Short Quiz', description: 'Quick assessment tool' },
+  { value: 'EXIT_TICKETS', label: 'Exit Tickets', description: 'End-of-lesson check for understanding' },
 ];
 
 export const QuickGenerate: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    locale: DEFAULT_LOCALE,
-    curriculum: getDefaultCurriculum(DEFAULT_LOCALE),
-    grade: '',
-    standardCode: '',
-    fullBundle: true,
-    selectedProducts: [],
+    grade_level: 6,
+    ela_standard_type: 'RI',
+    ela_standard_code: '',
+    template_type: 'ANCHOR_READING_PASSAGE',
+    worldview_flag: 'NEUTRAL',
+    standard_id: null,
   });
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleProductToggle = (productValue: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedProducts: prev.selectedProducts.includes(productValue)
-        ? prev.selectedProducts.filter(p => p !== productValue)
-        : [...prev.selectedProducts, productValue]
-    }));
-  };
+  
+  const { data: standards } = useStandards({
+    grade_level: formData.grade_level,
+    ela_standard_type: formData.ela_standard_type,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.standard_id) return;
+    
     setIsLoading(true);
     
     try {
-      const productTypeMap: Record<string, any> = {
-        'course': 'WORKSHEET',
-        'module': 'WORKSHEET', 
-        'lesson': 'WORKSHEET',
-        'assessment': 'ASSESSMENT',
-        'activity': 'WORKSHEET',
-        'resource': 'WORKSHEET'
+      const request: GenerateTemplateRequest = {
+        standard_id: formData.standard_id,
+        template_type: formData.template_type,
+        grade_level: formData.grade_level,
+        ela_standard_type: formData.ela_standard_type,
+        ela_standard_code: formData.ela_standard_code,
+        worldview_flag: formData.worldview_flag,
       };
       
-      const productType = formData.fullBundle ? 'WORKSHEET' : 
-        productTypeMap[formData.selectedProducts[0]] || 'WORKSHEET';
-      
-      const request: GenerateProductRequest = {
-        standard_id: 1,
-        product_type: productType,
-        locale: formData.locale,
-        curriculum_board: formData.curriculum,
-        grade_level: parseInt(formData.grade)
-      };
-      
-      const result = await api.generateProduct(request);
-      alert(`Generation started! Job ID: ${result.job_id}, Product ID: ${result.product_ids[0]}`);
+      const result = await generationApi.generateTemplate(request);
+      alert(`Template generation started! Job ID: ${result.job_id}`);
     } catch (error: any) {
       console.error('Generation failed:', error);
       alert(`Generation failed: ${error.response?.data?.detail || error.message}`);
@@ -88,137 +74,143 @@ export const QuickGenerate: React.FC = () => {
 
   const resetForm = () => {
     setFormData({ 
-      locale: DEFAULT_LOCALE, 
-      curriculum: getDefaultCurriculum(DEFAULT_LOCALE), 
-      grade: '', 
-      standardCode: '', 
-      fullBundle: true, 
-      selectedProducts: [] 
+      grade_level: 6,
+      ela_standard_type: 'RI',
+      ela_standard_code: '',
+      template_type: 'ANCHOR_READING_PASSAGE',
+      worldview_flag: 'NEUTRAL',
+      standard_id: null,
     });
   };
 
   return (
     <PageContainer>
       <PageHeader
-        title="Quick Generate"
-        description="Generate curriculum content quickly using AI-powered tools"
-        actions={<Button variant="outline">View Templates</Button>}
+        title="Generate ELA Template"
+        description="Create Christian-facing ELA content using structured templates"
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
           <Card>
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Locale & Curriculum Section */}
+              {/* Grade & Standard Section */}
               <FormSection
-                title="Locale & Curriculum"
-                description="Select your region and educational curriculum"
+                title="Grade & ELA Standard"
+                description="Select grade level and ELA standard type"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
-                    label="Locale"
-                    value={formData.locale}
-                    onChange={(e) => setFormData(prev => ({ ...prev, locale: e.target.value as Locale }))}
+                    label="Grade Level"
+                    value={formData.grade_level.toString()}
+                    onChange={(e) => setFormData(prev => ({ ...prev, grade_level: parseInt(e.target.value) as GradeLevel }))}
                     required
                   >
-                    {Object.entries(LOCALE_CONFIGS).map(([code, config]) => (
-                      <option key={code} value={code}>{config.name}</option>
-                    ))}
+                    <option value="6">Grade 6</option>
+                    <option value="7">Grade 7</option>
+                    <option value="8">Grade 8</option>
                   </Select>
 
                   <Select
-                    label="Curriculum"
-                    value={formData.curriculum}
-                    onChange={(e) => setFormData(prev => ({ ...prev, curriculum: e.target.value as Curriculum }))}
+                    label="ELA Standard Type"
+                    value={formData.ela_standard_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ela_standard_type: e.target.value as ELAStandardType }))}
                     required
                   >
-                    {getSupportedCurricula(formData.locale).map((curriculum) => (
-                      <option key={curriculum} value={curriculum}>
-                        {CURRICULUM_LABELS[curriculum]}
+                    <option value="RI">Reading Informational (RI)</option>
+                    <option value="RL">Reading Literature (RL)</option>
+                  </Select>
+                </div>
+              </FormSection>
+
+              {/* Standard Selection */}
+              <FormSection
+                title="Specific Standard"
+                description="Choose the specific ELA standard"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Standard Code"
+                    value={formData.ela_standard_code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ela_standard_code: e.target.value }))}
+                    placeholder="e.g., RI.6.1 or RL.7.2"
+                    required
+                  />
+                  
+                  <Select
+                    label="Available Standards"
+                    value={formData.standard_id?.toString() || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, standard_id: parseInt(e.target.value) }))}
+                    required
+                  >
+                    <option value="">Select a standard</option>
+                    {standards?.data?.map((standard) => (
+                      <option key={standard.id} value={standard.id}>
+                        {standard.code} - {standard.description}
                       </option>
                     ))}
                   </Select>
                 </div>
               </FormSection>
 
-              {/* Grade Level Section */}
+              {/* Template Selection */}
               <FormSection
-                title="Grade Level"
-                description="Select the grade level for content generation"
+                title="Template Type"
+                description="Choose the type of content to generate"
               >
                 <Select
-                  label="Grade"
-                  value={formData.grade}
-                  onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
+                  label="Template"
+                  value={formData.template_type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, template_type: e.target.value as TemplateType }))}
                   required
                 >
-                  <option value="">Select grade level</option>
-                  {getGradeRangesForCurriculum(formData.curriculum).map((grade) => (
-                    <option key={grade} value={grade}>
-                      {formData.curriculum === 'CBSE' ? `Class ${grade}` : `Grade ${grade}`}
+                  {templateOptions.map((template) => (
+                    <option key={template.value} value={template.value}>
+                      {template.label}
                     </option>
                   ))}
                 </Select>
+                <p className="text-sm text-neutral-600 mt-2">
+                  {templateOptions.find(t => t.value === formData.template_type)?.description}
+                </p>
               </FormSection>
 
-              {/* Standard Input Section */}
+              {/* Worldview Selection */}
               <FormSection
-                title="Standard Input"
-                description="Enter the educational standard code to generate content for"
+                title="Content Worldview"
+                description="Choose content perspective"
               >
-                <Input
-                  label="Standard Code"
-                  value={formData.standardCode}
-                  onChange={(e) => setFormData(prev => ({ ...prev, standardCode: e.target.value }))}
-                  placeholder={formData.curriculum === 'CBSE' ? 'e.g., CBSE.MATH.CLASS3.NUMBERS' : 'e.g., CCSS.MATH.CONTENT.3.OA.A.1'}
-                  helperText={formData.curriculum === 'CBSE' ? 'Enter CBSE standard format: CBSE.SUBJECT.CLASS.TOPIC' : 'Enter Common Core standard identifier'}
-                  required
-                />
-              </FormSection>
-
-              {/* Product Selection Section */}
-              <FormSection
-                title="Product Selection"
-                description="Choose which products to generate for this standard"
-              >
-                <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg mb-4">
-                  <Checkbox
-                    label="Full 12-Product Bundle (Recommended)"
-                    checked={formData.fullBundle}
-                    onChange={(e) => setFormData(prev => ({ ...prev, fullBundle: e.target.checked }))}
-                    helperText="Complete curriculum package with all product types"
-                  />
-                </div>
-
-                {!formData.fullBundle && (
-                  <div className="space-y-4">
-                    <p className="text-sm font-medium text-neutral-700">Or select individual products:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Core Content</p>
-                        {productOptions.slice(0, 3).map((product) => (
-                          <Checkbox
-                            key={product.value}
-                            label={product.label}
-                            checked={formData.selectedProducts.includes(product.value)}
-                            onChange={() => handleProductToggle(product.value)}
-                          />
-                        ))}
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Support Materials</p>
-                        {productOptions.slice(3).map((product) => (
-                          <Checkbox
-                            key={product.value}
-                            label={product.label}
-                            checked={formData.selectedProducts.includes(product.value)}
-                            onChange={() => handleProductToggle(product.value)}
-                          />
-                        ))}
-                      </div>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="worldview"
+                      value="NEUTRAL"
+                      checked={formData.worldview_flag === 'NEUTRAL'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, worldview_flag: e.target.value as WorldviewFlag }))}
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <div>
+                      <span className="font-medium text-neutral-900">Neutral Content</span>
+                      <p className="text-sm text-neutral-600">Standard academic content without religious perspective</p>
                     </div>
-                  </div>
-                )}
+                  </label>
+                  
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="worldview"
+                      value="CHRISTIAN"
+                      checked={formData.worldview_flag === 'CHRISTIAN'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, worldview_flag: e.target.value as WorldviewFlag }))}
+                      className="w-4 h-4 text-primary-600"
+                    />
+                    <div>
+                      <span className="font-medium text-neutral-900">Christian-Facing Content</span>
+                      <p className="text-sm text-neutral-600">Values-aligned academic content (not preachy)</p>
+                    </div>
+                  </label>
+                </div>
               </FormSection>
 
               {/* Submit Section */}
@@ -227,9 +219,9 @@ export const QuickGenerate: React.FC = () => {
                   type="submit"
                   variant="primary"
                   loading={isLoading}
-                  disabled={!formData.standardCode || !formData.grade}
+                  disabled={!formData.standard_id || !formData.ela_standard_code}
                 >
-                  Generate Products
+                  Generate Template
                 </Button>
                 <Button
                   type="button"
@@ -244,18 +236,25 @@ export const QuickGenerate: React.FC = () => {
           </Card>
         </div>
 
-        {/* History Sidebar */}
+        {/* Template Info Sidebar */}
         <div>
           <Card>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Recent Generations</h3>
-            <EmptyState
-              title="No recent runs yet"
-              description="Your generation history will appear here"
-            />
-            <div className="mt-4 pt-4 border-t border-neutral-200">
-              <Button variant="outline" fullWidth className="text-sm">
-                View All History
-              </Button>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Template Output</h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="font-medium text-neutral-700">Includes:</span>
+                <ul className="mt-1 space-y-1 text-neutral-600">
+                  <li>• Final content (PDF-ready)</li>
+                  <li>• SEO title & description</li>
+                  <li>• Internal linking block</li>
+                  <li>• Social media snippets</li>
+                </ul>
+              </div>
+              
+              <div className="pt-3 border-t border-neutral-200">
+                <span className="font-medium text-neutral-700">Christian Content:</span>
+                <p className="mt-1 text-neutral-600">Academic focus with values alignment, no sermon tone</p>
+              </div>
             </div>
           </Card>
         </div>

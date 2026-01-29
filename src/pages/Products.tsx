@@ -9,7 +9,8 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { FilterSelect } from '../components/ui/FilterSelect';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '../components/ui/Table';
-import { api, Product } from '../api/client';
+import { useProducts } from '../hooks/useProducts';
+import { Product, TemplateType, WorldviewFlag, GradeLevel } from '../types/api';
 
 const statusOptions = [
   { value: 'GENERATED', label: 'Generated' },
@@ -17,53 +18,36 @@ const statusOptions = [
   { value: 'FAILED', label: 'Failed' }
 ];
 
-const typeOptions = [
-  { value: 'WORKSHEET', label: 'Worksheet' },
-  { value: 'QUIZ', label: 'Quiz' },
-  { value: 'PASSAGE', label: 'Passage' },
-  { value: 'ASSESSMENT', label: 'Assessment' }
+const templateOptions = [
+  { value: 'BUNDLE_OVERVIEW', label: 'Bundle Overview' },
+  { value: 'VOCABULARY_PACK', label: 'Vocabulary Pack' },
+  { value: 'ANCHOR_READING_PASSAGE', label: 'Reading Passage' },
+  { value: 'READING_COMPREHENSION_QUESTIONS', label: 'Comprehension' },
+  { value: 'SHORT_QUIZ', label: 'Short Quiz' },
+  { value: 'EXIT_TICKETS', label: 'Exit Tickets' }
+];
+
+const worldviewOptions = [
+  { value: 'CHRISTIAN', label: 'Christian' },
+  { value: 'NEUTRAL', label: 'Neutral' }
 ];
 
 export const Products: React.FC = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-
-  const fetchProducts = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const params: any = {};
-      if (statusFilter) params.status = statusFilter;
-      if (typeFilter) params.product_type = typeFilter;
-      
-      const response = await api.getProducts(params);
-      setProducts(response.data?.products || []);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, typeFilter]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [statusFilter, typeFilter]);
+  const [templateFilter, setTemplateFilter] = useState('');
+  const [worldviewFilter, setWorldviewFilter] = useState('');
+  
+  const { data: productsData, isLoading } = useProducts({
+    status: statusFilter as any,
+    template_type: templateFilter as TemplateType,
+    worldview_flag: worldviewFilter as WorldviewFlag,
+  });
 
   const clearFilters = () => {
     setStatusFilter('');
-    setTypeFilter('');
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'GENERATED': return 'Generated';
-      case 'DRAFT': return 'Draft';
-      case 'FAILED': return 'Failed';
-      default: return status;
-    }
+    setTemplateFilter('');
+    setWorldviewFilter('');
   };
 
   const getStatusVariant = (status: string) => {
@@ -75,27 +59,33 @@ export const Products: React.FC = () => {
     }
   };
 
-  if (loading) {
+  const getTemplateLabel = (templateType: TemplateType) => {
+    return templateOptions.find(t => t.value === templateType)?.label || templateType;
+  };
+
+  if (isLoading) {
     return (
       <PageContainer>
-        <PageHeader title="Products" description="Loading products..." />
+        <PageHeader title="Templates" description="Loading templates..." />
         <div className="flex justify-center py-12">
-          <div className="text-neutral-500">Loading products...</div>
+          <div className="text-neutral-500">Loading templates...</div>
         </div>
       </PageContainer>
     );
   }
 
+  const products = productsData?.data || [];
+
   return (
     <PageContainer>
       <PageHeader
-        title="Products"
-        description="Manage your curriculum products and content"
-        actions={<Button variant="primary">Create Product</Button>}
+        title="ELA Templates"
+        description="Manage your generated ELA content templates"
+        actions={<Button variant="primary" onClick={() => navigate('/quick-generate')}>Generate Template</Button>}
       />
 
       <Card>
-        <h2 className="text-xl font-semibold text-neutral-900 mb-4">All Products</h2>
+        <h2 className="text-xl font-semibold text-neutral-900 mb-4">All Templates</h2>
         
         {/* Filters */}
         <FilterBar onClear={clearFilters}>
@@ -107,22 +97,30 @@ export const Products: React.FC = () => {
             placeholder="All Statuses"
           />
           <FilterSelect
-            label="Type"
-            value={typeFilter}
-            options={typeOptions}
-            onChange={setTypeFilter}
-            placeholder="All Types"
+            label="Template Type"
+            value={templateFilter}
+            options={templateOptions}
+            onChange={setTemplateFilter}
+            placeholder="All Templates"
+          />
+          <FilterSelect
+            label="Worldview"
+            value={worldviewFilter}
+            options={worldviewOptions}
+            onChange={setWorldviewFilter}
+            placeholder="All Content"
           />
         </FilterBar>
         
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeader>Product ID</TableHeader>
+              <TableHeader>Template ID</TableHeader>
               <TableHeader>Type</TableHeader>
               <TableHeader>Status</TableHeader>
               <TableHeader>Grade</TableHeader>
-              <TableHeader>Curriculum</TableHeader>
+              <TableHeader>Standard</TableHeader>
+              <TableHeader>Worldview</TableHeader>
               <TableHeader>Created</TableHeader>
               <TableHeader>Actions</TableHeader>
             </TableRow>
@@ -138,14 +136,25 @@ export const Products: React.FC = () => {
                   <TableCell>
                     <span className="font-medium">#{product.id}</span>
                   </TableCell>
-                  <TableCell>{product.product_type}</TableCell>
+                  <TableCell>{getTemplateLabel(product.template_type)}</TableCell>
                   <TableCell>
                     <StatusBadge status={getStatusVariant(product.status)}>
-                      {getStatusLabel(product.status)}
+                      {product.status}
                     </StatusBadge>
                   </TableCell>
                   <TableCell>Grade {product.grade_level}</TableCell>
-                  <TableCell>{product.curriculum_board}</TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm">{product.ela_standard_code}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      product.worldview_flag === 'CHRISTIAN' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {product.worldview_flag === 'CHRISTIAN' ? '✝️ Christian' : '📚 Neutral'}
+                    </span>
+                  </TableCell>
                   <TableCell>{new Date(product.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Button 
@@ -163,11 +172,11 @@ export const Products: React.FC = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <EmptyState
-                    title="No products found"
-                    description="No products match your current filters or none have been created yet"
-                    action={<Button variant="primary">Create Product</Button>}
+                    title="No templates found"
+                    description="No templates match your current filters or none have been created yet"
+                    action={<Button variant="primary" onClick={() => navigate('/quick-generate')}>Generate Template</Button>}
                   />
                 </TableCell>
               </TableRow>

@@ -1,6 +1,7 @@
 {
-  "name": "rb-engine-frontend",
-  "version": "0.1.0",
+  "name": "rbb-engine-ela-frontend",
+  "version": "2.0.0",
+  "description": "ELA Template Generation System - Christian-facing educational content",
   "private": true,
   "dependencies": {
     "@tanstack/react-query": "^5.17.0",

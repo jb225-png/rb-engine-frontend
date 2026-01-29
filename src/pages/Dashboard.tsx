@@ -8,7 +8,7 @@ import { Section } from '../components/ui/Section';
 import { Spinner } from '../components/ui/Spinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { useDashboardStats, useRecentProducts, useRecentJobs } from '../hooks/useDashboard';
+import { useDashboard } from '../hooks/useDashboard';
 import { Product, GenerationJob } from '../types/api';
 
 const getProductStatusVariant = (status: Product['status']) => {
@@ -23,184 +23,171 @@ const getProductStatusVariant = (status: Product['status']) => {
 const getJobStatusVariant = (status: GenerationJob['status']) => {
   switch (status) {
     case 'COMPLETED': return 'success';
-    case 'RUNNING': return 'generating';
     case 'PENDING': return 'pending';
     case 'FAILED': return 'error';
     default: return 'pending';
   }
 };
 
+const templateTypeLabels: Record<string, string> = {
+  'BUNDLE_OVERVIEW': 'Bundle Overview',
+  'VOCABULARY_PACK': 'Vocabulary Pack',
+  'ANCHOR_READING_PASSAGE': 'Reading Passage',
+  'READING_COMPREHENSION_QUESTIONS': 'Comprehension',
+  'SHORT_QUIZ': 'Short Quiz',
+  'EXIT_TICKETS': 'Exit Tickets'
+};
+
 export const Dashboard: React.FC = () => {
-  const { data: metrics, isLoading: metricsLoading } = useDashboardStats();
-  const { data: recentProducts, isLoading: productsLoading } = useRecentProducts(5);
-  const { data: recentJobs, isLoading: jobsLoading } = useRecentJobs(5);
+  const { data: stats, isLoading } = useDashboard();
 
   return (
     <PageContainer>
       <PageHeader
-        title="Dashboard"
-        description="Overview of your RBB Engine content and activities"
+        title="ELA Template Dashboard"
+        description="Overview of your Christian-facing ELA content generation"
       />
       
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">Total Products</h3>
-          {metricsLoading ? (
+          <h3 className="text-sm font-medium text-neutral-500 mb-2">Total Templates</h3>
+          {isLoading ? (
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-primary-600">{metrics?.total_products || 0}</p>
-              <p className="text-sm text-neutral-500 mt-1">Curriculum products</p>
+              <p className="text-3xl font-bold text-primary-600">{stats?.total_products || 0}</p>
+              <p className="text-sm text-neutral-500 mt-1">ELA templates</p>
             </>
           )}
         </Card>
         
         <Card>
           <h3 className="text-sm font-medium text-neutral-500 mb-2">Generation Jobs</h3>
-          {metricsLoading ? (
+          {isLoading ? (
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-success-500">{metrics?.total_generation_jobs || 0}</p>
-              <p className="text-sm text-neutral-500 mt-1">Total jobs created</p>
+              <p className="text-3xl font-bold text-success-500">{stats?.total_generation_jobs || 0}</p>
+              <p className="text-sm text-neutral-500 mt-1">Total jobs</p>
             </>
           )}
         </Card>
         
         <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">Published</h3>
-          {metricsLoading ? (
+          <h3 className="text-sm font-medium text-neutral-500 mb-2">Christian Content</h3>
+          {isLoading ? (
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-success-500">{metrics?.products_by_status.GENERATED || 0}</p>
-              <p className="text-sm text-neutral-500 mt-1">Ready products</p>
+              <p className="text-3xl font-bold text-blue-600">{stats?.content_by_worldview?.CHRISTIAN || 0}</p>
+              <p className="text-sm text-neutral-500 mt-1">Faith-conscious</p>
             </>
           )}
         </Card>
         
         <Card>
-          <h3 className="text-sm font-medium text-neutral-500 mb-2">In Draft</h3>
-          {metricsLoading ? (
+          <h3 className="text-sm font-medium text-neutral-500 mb-2">Generated</h3>
+          {isLoading ? (
             <Spinner size="sm" />
           ) : (
             <>
-              <p className="text-3xl font-bold text-warning-500">{metrics?.products_by_status.DRAFT || 0}</p>
-              <p className="text-sm text-neutral-500 mt-1">Pending generation</p>
+              <p className="text-3xl font-bold text-success-500">{stats?.products_by_status?.GENERATED || 0}</p>
+              <p className="text-sm text-neutral-500 mt-1">Ready templates</p>
             </>
           )}
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Template Distribution */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Recent Products */}
+        {/* Template Types */}
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-neutral-900">Recent Products</h3>
-            <Button variant="outline" size="sm" as={Link} to="/products">
-              View All
-            </Button>
-          </div>
-          
-          {productsLoading ? (
+          <h3 className="text-lg font-semibold text-neutral-900 mb-4">Template Types</h3>
+          {isLoading ? (
             <div className="flex justify-center py-8">
               <Spinner size="md" />
             </div>
-          ) : recentProducts?.length ? (
+          ) : stats?.templates_by_type ? (
             <div className="space-y-3">
-              {recentProducts.map((product) => (
-                <div key={product.id} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <Link 
-                      to={`/products/${product.id}`}
-                      className="font-medium text-primary-600 hover:text-primary-700 truncate block"
-                    >
-                      {product.name}
-                    </Link>
-                    <p className="text-sm text-neutral-500 capitalize">{product.product_type}</p>
-                  </div>
-                  <StatusBadge status={getProductStatusVariant(product.status)}>
-                    {product.status}
-                  </StatusBadge>
+              {Object.entries(stats.templates_by_type).map(([type, count]) => (
+                <div key={type} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
+                  <span className="font-medium text-neutral-900">
+                    {templateTypeLabels[type] || type}
+                  </span>
+                  <span className="text-2xl font-bold text-primary-600">{count}</span>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="No products yet"
-              description="Create your first product to get started"
-              action={<Button variant="primary" as={Link} to="/quick-generate">Generate Product</Button>}
+              title="No templates yet"
+              description="Generate your first template to see distribution"
             />
           )}
         </Card>
 
-        {/* Recent Generation Jobs */}
+        {/* Grade Distribution */}
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-neutral-900">Recent Generation Jobs</h3>
-            <Button variant="outline" size="sm" as={Link} to="/jobs">
-              View All
-            </Button>
-          </div>
-          
-          {jobsLoading ? (
+          <h3 className="text-lg font-semibold text-neutral-900 mb-4">Grade Distribution</h3>
+          {isLoading ? (
             <div className="flex justify-center py-8">
               <Spinner size="md" />
             </div>
-          ) : recentJobs?.length ? (
+          ) : stats?.content_by_grade ? (
             <div className="space-y-3">
-              {recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-neutral-900 truncate">Standard #{job.standard_id}</p>
-                    <p className="text-sm text-neutral-500">Job #{job.id.slice(-8)}</p>
-                  </div>
-                  <div className="text-right">
-                    <StatusBadge status={getJobStatusVariant(job.status)}>
-                      {job.status}
-                    </StatusBadge>
-                    {job.total_products && (
-                      <p className="text-xs text-neutral-500 mt-1">{job.total_products} products</p>
-                    )}
-                  </div>
+              {Object.entries(stats.content_by_grade).map(([grade, count]) => (
+                <div key={grade} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
+                  <span className="font-medium text-neutral-900">Grade {grade}</span>
+                  <span className="text-2xl font-bold text-primary-600">{count}</span>
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              title="No generation jobs yet"
-              description="Create your first generation job"
-              action={<Button variant="primary" as={Link} to="/quick-generate">Quick Generate</Button>}
+              title="No grade data yet"
+              description="Templates will be organized by grade level"
             />
           )}
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <Section title="Quick Actions" description="Common tasks and shortcuts">
+      <Section title="Quick Actions" description="Generate and manage ELA templates">
         <Card>
-          <div className="flex flex-wrap gap-4">
-            <Button variant="primary" as={Link} to="/quick-generate">
-              Generate New Product
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="primary" as={Link} to="/quick-generate" className="h-20 flex flex-col items-center justify-center">
+              <span className="text-2xl mb-1">⚡</span>
+              <span>Generate Template</span>
             </Button>
-            <Button variant="secondary" as={Link} to="/upload-queue">
-              View Upload Queue
+            <Button variant="secondary" as={Link} to="/products" className="h-20 flex flex-col items-center justify-center">
+              <span className="text-2xl mb-1">📝</span>
+              <span>View Templates</span>
             </Button>
-            <Button variant="outline" as={Link} to="/bundles">
-              Manage Bundles
+            <Button variant="outline" as={Link} to="/jobs" className="h-20 flex flex-col items-center justify-center">
+              <span className="text-2xl mb-1">🔄</span>
+              <span>Generation Jobs</span>
             </Button>
           </div>
           
-          {/* TODO: Add automation features in future milestones */}
           <div className="mt-6 pt-4 border-t border-neutral-200">
-            <p className="text-sm text-neutral-500 mb-2">Coming Soon - Automation Features:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-neutral-400">
-              <p>• Automated content generation workflows</p>
-              <p>• Scheduled batch processing</p>
-              <p>• Quality control automation</p>
-              <p>• Content distribution pipelines</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-medium text-neutral-900 mb-2">Content Types Available:</h4>
+                <ul className="text-sm text-neutral-600 space-y-1">
+                  <li>• Bundle Overview</li>
+                  <li>• Vocabulary Pack</li>
+                  <li>• Anchor Reading Passage</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium text-neutral-900 mb-2">Features:</h4>
+                <ul className="text-sm text-neutral-600 space-y-1">
+                  <li>• Christian worldview option</li>
+                  <li>• SEO-optimized content</li>
+                  <li>• Grade-appropriate difficulty</li>
+                </ul>
+              </div>
             </div>
           </div>
         </Card>

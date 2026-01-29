@@ -1,26 +1,43 @@
+// ELA Template types
+export type TemplateType = 
+  | 'BUNDLE_OVERVIEW'
+  | 'VOCABULARY_PACK'
+  | 'ANCHOR_READING_PASSAGE'
+  | 'READING_COMPREHENSION_QUESTIONS'
+  | 'SHORT_QUIZ'
+  | 'EXIT_TICKETS';
+
+export type ELAStandardType = 'RI' | 'RL';
+export type GradeLevel = 6 | 7 | 8;
+export type WorldviewFlag = 'CHRISTIAN' | 'NEUTRAL';
+export type ProductStatus = 'DRAFT' | 'GENERATED' | 'FAILED';
+export type JobStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
+
 // Product types
 export interface Product {
   id: string;
-  name: string;
-  product_type: 'WORKSHEET' | 'PASSAGE' | 'QUIZ' | 'ASSESSMENT' | 'FLASHCARDS' | 'LESSON_PLAN' | 'RUBRIC' | 'PROJECT' | 'PRESENTATION' | 'ACTIVITY' | 'GAME' | 'SIMULATION';
-  status: 'DRAFT' | 'GENERATED' | 'FAILED';
-  standard_id?: number;
+  template_type: TemplateType;
+  status: ProductStatus;
+  standard_id: number;
   generation_job_id?: string;
-  grade_level?: number;
-  curriculum_board?: string;
-  locale?: string;
+  grade_level: GradeLevel;
+  ela_standard_type: ELAStandardType;
+  ela_standard_code: string;
+  worldview_flag: WorldviewFlag;
+  is_christian_content: boolean;
+  seo_title?: string;
+  seo_description?: string;
+  internal_linking_block?: string;
+  social_snippets?: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface ProductDetail extends Product {
-  description?: string;
   metadata?: {
     title?: string;
     description?: string;
     tags?: string[];
     price?: number;
-    currency?: string;
     [key: string]: any;
   };
   raw_json?: Record<string, any>;
@@ -39,29 +56,41 @@ export interface Standard {
   id: number;
   code: string;
   description?: string;
-  grade_level?: number;
-  curriculum_board?: string;
-  locale?: string;
+  grade_level: GradeLevel;
+  ela_standard_type: ELAStandardType;
 }
 
 // Generation Job types
 export interface GenerationJob {
   id: string;
   standard_id: number;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
-  total_products?: number;
-  completed_products?: number;
-  failed_products?: number;
+  status: JobStatus;
+  grade_level: GradeLevel;
+  ela_standard_type: ELAStandardType;
+  ela_standard_code: string;
+  worldview_flag: WorldviewFlag;
+  total_products: number;
+  completed_products: number;
+  failed_products: number;
   created_at: string;
   updated_at?: string;
 }
 
-export interface CreateGenerationJobRequest {
+export interface GenerateTemplateRequest {
   standard_id: number;
-  product_type?: Product['product_type'];
-  locale?: string;
-  curriculum_board?: string;
-  grade_level?: number;
+  template_type: TemplateType;
+  grade_level: GradeLevel;
+  ela_standard_type: ELAStandardType;
+  ela_standard_code: string;
+  worldview_flag: WorldviewFlag;
+}
+
+export interface GenerateTemplateResponse {
+  job_id: string;
+  product_id: string;
+  message: string;
+  seo_title?: string;
+  seo_description?: string;
 }
 
 // API Response types
@@ -73,21 +102,11 @@ export interface ApiResponse<T> {
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
-    page: number;
-    limit: number;
     total: number;
-    totalPages: number;
+    limit: number;
+    offset: number;
+    has_next: boolean;
   };
-}
-
-// Upload Task types
-export interface UploadTask {
-  id: string;
-  product_id?: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  assigned_to?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 // Dashboard metrics
@@ -101,35 +120,33 @@ export interface DashboardStats {
   total_generation_jobs: number;
   jobs_by_status: {
     PENDING: number;
-    RUNNING: number;
     COMPLETED: number;
     FAILED: number;
   };
-  total_upload_tasks: number;
-  tasks_by_status: {
-    PENDING: number;
-    IN_PROGRESS: number;
-    COMPLETED: number;
+  templates_by_type: Record<TemplateType, number>;
+  content_by_worldview: {
+    CHRISTIAN: number;
+    NEUTRAL: number;
   };
+  content_by_grade: Record<string, number>;
 }
 
 // Query parameters
 export interface ProductsQueryParams {
-  page?: number;
   limit?: number;
-  status?: Product['status'];
-  product_type?: Product['product_type'];
-  search?: string;
+  offset?: number;
+  status?: ProductStatus;
+  template_type?: TemplateType;
   generation_job_id?: string;
   standard_id?: number;
-  curriculum_board?: string;
-  grade_level?: number;
-  locale?: string;
-  offset?: number;
+  grade_level?: GradeLevel;
+  ela_standard_type?: ELAStandardType;
+  worldview_flag?: WorldviewFlag;
 }
 
-export interface UploadTasksQueryParams {
-  page?: number;
+export interface StandardsQueryParams {
   limit?: number;
-  status?: UploadTask['status'];
+  offset?: number;
+  grade_level?: GradeLevel;
+  ela_standard_type?: ELAStandardType;
 }

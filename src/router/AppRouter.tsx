@@ -6,8 +6,7 @@ import { Products } from '../pages/Products';
 import { ProductDetail } from '../pages/ProductDetail';
 import { QuickGenerate } from '../pages/QuickGenerate';
 import { Jobs } from '../pages/Jobs';
-import { UploadQueue } from '../pages/UploadQueue';
-import { Bundles } from '../pages/Bundles';
+
 
 export const AppRouter: React.FC = () => {
   return (
@@ -19,8 +18,7 @@ export const AppRouter: React.FC = () => {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/quick-generate" element={<QuickGenerate />} />
           <Route path="/jobs" element={<Jobs />} />
-          <Route path="/upload-queue" element={<UploadQueue />} />
-          <Route path="/bundles" element={<Bundles />} />
+
         </Routes>
       </AppLayout>
     </BrowserRouter>
