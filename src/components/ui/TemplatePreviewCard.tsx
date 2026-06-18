@@ -112,7 +112,7 @@ export const TemplatePreviewCard: React.FC<TemplatePreviewCardProps> = ({
           </div>
         )}
 
-        {!loading && !error && preview && (
+        {!loading && !error && preview && preview.preview && (
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
             {Object.entries(preview.preview).map(([key, value]) => {
               if (!value || (Array.isArray(value) && value.length === 0)) return null;

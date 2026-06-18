@@ -37,9 +37,11 @@ export const ProductDetail: React.FC = () => {
   const [productContent, setProductContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const downloadPptx = async () => {
     if (!product) return;
+    setDownloading(true);
     try {
       const response = await apiClient.get(`/products/${product.id}/download/pptx`, {
         responseType: 'blob',
@@ -57,6 +59,8 @@ export const ProductDetail: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (err: any) {
       alert(`PPTX download failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -151,7 +155,7 @@ export const ProductDetail: React.FC = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate('/products')}>Back</Button>
             {product.status === 'GENERATED' && (
-              <Button variant="primary" onClick={downloadPptx}>Download PPTX</Button>
+              <Button variant="primary" onClick={downloadPptx} loading={downloading} disabled={downloading}>Download PPTX</Button>
             )}
           </div>
         }
@@ -534,8 +538,8 @@ export const ProductDetail: React.FC = () => {
                             <p className="font-medium text-neutral-900">{product.template_type?.toLowerCase().replace(/_/g, '-')}-grade-{product.grade_level}-{product.id}.pptx</p>
                             <p className="text-sm text-neutral-500">PowerPoint • Filled template</p>
                           </div>
-                          <Button variant="outline" size="sm" onClick={downloadPptx}>
-                            Download PPTX
+                          <Button variant="outline" size="sm" onClick={downloadPptx} loading={downloading} disabled={downloading}>
+                            {downloading ? 'Downloading...' : 'Download PPTX'}
                           </Button>
                         </div>
                         <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
@@ -606,8 +610,8 @@ export const ProductDetail: React.FC = () => {
           {product.status === 'GENERATED' && (
             <div className="bg-white border border-neutral-200 rounded-xl p-4">
               <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Download</p>
-              <Button variant="primary" fullWidth onClick={downloadPptx}>
-                ⬇️ Download PPTX
+              <Button variant="primary" fullWidth onClick={downloadPptx} loading={downloading} disabled={downloading}>
+                {downloading ? 'Downloading...' : '⬇️ Download PPTX'}
               </Button>
             </div>
           )}
